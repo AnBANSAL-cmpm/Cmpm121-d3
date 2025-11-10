@@ -21,6 +21,19 @@ const TILE_DEGREES = 1e-4; //about 10 meters
 const GRID_RADIUS = 2; // 5x5 grid
 const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
 
+let heldToken: number | null = null;
+
+//UI Elements
+const statusPanel = document.createElement("div");
+statusPanel.id = "statusPanel";
+document.body.appendChild(statusPanel);
+
+function updateStatus() {
+  statusPanel.innerHTML = heldToken
+    ? `🎒 Holding token: ${heldToken}`
+    : "👐 Hand: empty";
+}
+
 // === Setup Map Element ===
 const mapDiv = document.createElement("div");
 mapDiv.id = "map";
@@ -67,6 +80,7 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
     // Deterministic token assignment
     const chance = luck([i, j].toString());
     const hasToken = chance < TOKEN_PROBABILITY;
+    let tokenValue = hasToken ? 1 : 0;
 
     // Visualize differently if it has a token
     const rect = leaflet.rectangle(bounds, {
@@ -75,6 +89,40 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
       fillOpacity: hasToken ? 0.6 : 0.2,
     });
     rect.addTo(map);
-    rect.bindTooltip(`Cell (${i}, ${j}) — token: ${hasToken ? "1" : "0"}`);
+
+    // Add token value text as a marker at center
+    const center = bounds.getCenter();
+    const label = leaflet.marker(center, {
+      icon: leaflet.divIcon({
+        className: "token-label",
+        html: `<b>${tokenValue}</b>`,
+      }),
+      interactive: false, // label itself doesn’t capture clicks yet
+    });
+    label.addTo(map);
+
+    rect.bindTooltip(`Cell (${i}, ${j}) — token: ${tokenValue}`);
+
+    // === Interaction: pick up token if hand empty ===
+    rect.on("click", () => {
+      if (tokenValue > 0 && heldToken === null) {
+        // pick up token
+        heldToken = tokenValue;
+        tokenValue = 0; // remove from cell
+
+        // update rectangle color and label
+        rect.setStyle({ color: "#999", fillOpacity: 0.2 });
+        label.setIcon(
+          leaflet.divIcon({
+            className: "token-label",
+            html: `<b>${tokenValue}</b>`,
+          }),
+        );
+
+        updateStatus();
+      }
+    });
   }
 }
+
+updateStatus();

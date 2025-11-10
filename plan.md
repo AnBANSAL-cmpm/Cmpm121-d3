@@ -34,6 +34,6 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] draw one cell at player location
 - [x] loop to draw 5x5 grid of cells around player
 - [x] use deterministic hash to decide if cell has token (value 1 or 0)
-- [ ] display token value in cell (text inside rectangle)
+- [x] display token value in cell (text inside rectangle)
 - [ ] make clickable cells: pick up token if empty hand
 - [ ] if holding token, click matching cell to combine → new value

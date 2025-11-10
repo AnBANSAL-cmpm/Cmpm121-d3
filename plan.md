@@ -30,9 +30,9 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] delete main.ts
 - [x] initialize Leaflet map centered on classroom (lat: 37.?, lng: -122.?)
 - [x] draw player’s location on map
-- [ ] define grid cell size (e.g., 0.0001°)
-- [ ] draw one cell at player location
-- [ ] loop to draw 5x5 grid of cells around player
+- [x] define grid cell size (e.g., 0.0001°)
+- [x] draw one cell at player location
+- [x] loop to draw 5x5 grid of cells around player
 - [ ] use deterministic hash to decide if cell has token (value 1 or 0)
 - [ ] display token value in cell (text inside rectangle)
 - [ ] make clickable cells: pick up token if empty hand

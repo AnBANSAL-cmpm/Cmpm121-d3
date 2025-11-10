@@ -14,6 +14,8 @@ const CLASSROOM_LATLNG = leaflet.latLng(
   -122.05703507501151,
 );
 const ZOOM_LEVEL = 19;
+const TILE_DEGREES = 1e-4; //about 10 meters
+const GRID_RADIUS = 2; // 5x5 grid
 
 // === Setup Map Element ===
 const mapDiv = document.createElement("div");
@@ -43,3 +45,24 @@ leaflet
 const playerMarker = leaflet.marker(CLASSROOM_LATLNG);
 playerMarker.bindTooltip("You are here");
 playerMarker.addTo(map);
+
+// === Draw 5x5 Grid of Cells Around Player ===
+for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
+  for (let j = -GRID_RADIUS; j <= GRID_RADIUS; j++) {
+    const bounds = leaflet.latLngBounds([
+      [
+        CLASSROOM_LATLNG.lat + i * TILE_DEGREES,
+        CLASSROOM_LATLNG.lng + j * TILE_DEGREES,
+      ],
+      [
+        CLASSROOM_LATLNG.lat + (i + 1) * TILE_DEGREES,
+        CLASSROOM_LATLNG.lng + (j + 1) * TILE_DEGREES,
+      ],
+    ]);
+
+    const rect = leaflet.rectangle(bounds, { color: "#3388ff", weight: 1 });
+    rect.addTo(map);
+
+    rect.bindTooltip(`Cell (${i}, ${j})`);
+  }
+}

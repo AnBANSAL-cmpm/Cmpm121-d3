@@ -23,6 +23,11 @@ const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
 const WORLD_RADIUS = 20;
 const FINAL_TOKEN_VALUE = 16;
 
+// === Color Constants ===
+const COLOR_TOKEN = "#4CAF50";
+const COLOR_EMPTY = "#999";
+const COLOR_COMBINED = "#c4dd38ff";
+
 let heldToken: number | null = null;
 
 //UI Elements
@@ -31,16 +36,20 @@ statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
 
 function updateStatus() {
-  if (heldToken === null) {
-    statusPanel.innerHTML = "👐 Hand: empty";
-  } else {
-    statusPanel.innerHTML = `🎒 Holding token: ${heldToken}`;
-  }
+  // Display hand status and goal achievement
+  statusPanel.innerHTML = heldToken
+    ? `🎒 Holding token: ${heldToken}${
+      heldToken >= FINAL_TOKEN_VALUE
+        ? " 🏆 You reached a sufficient token!"
+        : ""
+    }`
+    : "👐 Hand: empty";
+}
 
-  // Check for sufficient token
-  if (heldToken !== null && heldToken >= FINAL_TOKEN_VALUE) {
-    statusPanel.innerHTML += " 🏆 You reached a sufficient token!";
-  }
+function updateCellLabel(label: leaflet.Marker, value: number) {
+  label.setIcon(
+    leaflet.divIcon({ className: "token-label", html: `<b>${value}</b>` }),
+  );
 }
 
 // === Setup Map Element ===
@@ -68,9 +77,7 @@ leaflet
   .addTo(map);
 
 // Add a marker to represent the player
-const playerMarker = leaflet.marker(CLASSROOM_LATLNG);
-playerMarker.bindTooltip("You are here");
-playerMarker.addTo(map);
+leaflet.marker(CLASSROOM_LATLNG).bindTooltip("You are here").addTo(map);
 
 // === Draw Grid of Cells Around world ===
 for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
@@ -87,17 +94,15 @@ for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
     ]);
 
     // Deterministic token assignment
-    const chance = luck([i, j].toString());
-    const hasToken = chance < TOKEN_PROBABILITY;
+    const hasToken = luck([i, j].toString()) < TOKEN_PROBABILITY;
     let tokenValue = hasToken ? 1 : 0;
 
     // Visualize differently if it has a token
     const rect = leaflet.rectangle(bounds, {
-      color: hasToken ? "#4CAF50" : "#999",
+      color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
       weight: 1,
       fillOpacity: hasToken ? 0.6 : 0.2,
-    });
-    rect.addTo(map);
+    }).addTo(map);
 
     // Add token value text as a marker at center
     const center = bounds.getCenter();
@@ -106,9 +111,8 @@ for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
         className: "token-label",
         html: `<b>${tokenValue}</b>`,
       }),
-      interactive: false, // label itself doesn’t capture clicks yet
-    });
-    label.addTo(map);
+      interactive: false, //label itself should not capture clicks
+    }).addTo(map);
 
     // === Interaction: pick up token if hand empty ===
     rect.on("click", () => {
@@ -122,33 +126,21 @@ for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
         tokenValue = 0;
 
         // update rectangle color
-        rect.setStyle({ color: "#999", fillOpacity: 0.2 });
+        rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
 
         // update label to show 0
-        label.setIcon(
-          leaflet.divIcon({
-            className: "token-label",
-            html: `<b>${tokenValue}</b>`,
-          }),
-        );
-
+        updateCellLabel(label, tokenValue);
         updateStatus();
       } else if (heldToken !== null && tokenValue === heldToken) {
-        // === Combine token with matching cell ===
+        // === Combine token with matchqing cell ===
         tokenValue = heldToken * 2; // double value
         heldToken = null; // hand is now empty
 
         // update rectangle color for a combined token
-        rect.setStyle({ color: "#c4dd38ff", fillOpacity: 0.6 });
+        rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
 
         // update label to show new token value
-        label.setIcon(
-          leaflet.divIcon({
-            className: "token-label",
-            html: `<b>${tokenValue}</b>`,
-          }),
-        );
-
+        updateCellLabel(label, tokenValue);
         updateStatus();
       }
     });

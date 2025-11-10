@@ -38,3 +38,4 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] make clickable cells: pick up token if empty hand
 - [x] if holding token, click matching cell to combine → new value
 - [ ] cells visible throughout entire world (but player can only interact with nearby)
+- [ ] game detects sufficent value

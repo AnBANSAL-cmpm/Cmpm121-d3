@@ -18,8 +18,10 @@ const CLASSROOM_LATLNG = leaflet.latLng(
 );
 const ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4; //about 10 meters
-const GRID_RADIUS = 2; // 5x5 grid
+const INTERACT_RADIUS = 4;
 const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
+const WORLD_RADIUS = 20;
+const FINAL_TOKEN_VALUE = 16;
 
 let heldToken: number | null = null;
 
@@ -29,9 +31,16 @@ statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
 
 function updateStatus() {
-  statusPanel.innerHTML = heldToken
-    ? `🎒 Holding token: ${heldToken}`
-    : "👐 Hand: empty";
+  if (heldToken === null) {
+    statusPanel.innerHTML = "👐 Hand: empty";
+  } else {
+    statusPanel.innerHTML = `🎒 Holding token: ${heldToken}`;
+  }
+
+  // Check for sufficient token
+  if (heldToken !== null && heldToken >= FINAL_TOKEN_VALUE) {
+    statusPanel.innerHTML += " 🏆 You reached a sufficient token!";
+  }
 }
 
 // === Setup Map Element ===
@@ -63,9 +72,9 @@ const playerMarker = leaflet.marker(CLASSROOM_LATLNG);
 playerMarker.bindTooltip("You are here");
 playerMarker.addTo(map);
 
-// === Draw 5x5 Grid of Cells Around Player ===
-for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
-  for (let j = -GRID_RADIUS; j <= GRID_RADIUS; j++) {
+// === Draw Grid of Cells Around world ===
+for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
+  for (let j = -WORLD_RADIUS; j <= WORLD_RADIUS; j++) {
     const bounds = leaflet.latLngBounds([
       [
         CLASSROOM_LATLNG.lat + i * TILE_DEGREES,
@@ -84,7 +93,7 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
 
     // Visualize differently if it has a token
     const rect = leaflet.rectangle(bounds, {
-      color: hasToken ? "#3388ff" : "#999",
+      color: hasToken ? "#4CAF50" : "#999",
       weight: 1,
       fillOpacity: hasToken ? 0.6 : 0.2,
     });
@@ -101,10 +110,12 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
     });
     label.addTo(map);
 
-    rect.bindTooltip(`Cell (${i}, ${j}) — token: ${tokenValue}`);
-
     // === Interaction: pick up token if hand empty ===
     rect.on("click", () => {
+      if (Math.abs(i) > INTERACT_RADIUS || Math.abs(j) > INTERACT_RADIUS) {
+        return; // too far, ignore click
+      }
+
       if (heldToken === null && tokenValue > 0) {
         // === Pick up token if hand empty ===
         heldToken = tokenValue;
@@ -128,7 +139,7 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
         heldToken = null; // hand is now empty
 
         // update rectangle color for a combined token
-        rect.setStyle({ color: "#4CAF50", fillOpacity: 0.6 });
+        rect.setStyle({ color: "#c4dd38ff", fillOpacity: 0.6 });
 
         // update label to show new token value
         label.setIcon(

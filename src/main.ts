@@ -105,13 +105,32 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
 
     // === Interaction: pick up token if hand empty ===
     rect.on("click", () => {
-      if (tokenValue > 0 && heldToken === null) {
-        // pick up token
+      if (heldToken === null && tokenValue > 0) {
+        // === Pick up token if hand empty ===
         heldToken = tokenValue;
-        tokenValue = 0; // remove from cell
+        tokenValue = 0;
 
-        // update rectangle color and label
+        // update rectangle color
         rect.setStyle({ color: "#999", fillOpacity: 0.2 });
+
+        // update label to show 0
+        label.setIcon(
+          leaflet.divIcon({
+            className: "token-label",
+            html: `<b>${tokenValue}</b>`,
+          }),
+        );
+
+        updateStatus();
+      } else if (heldToken !== null && tokenValue === heldToken) {
+        // === Combine token with matching cell ===
+        tokenValue = heldToken * 2; // double value
+        heldToken = null; // hand is now empty
+
+        // update rectangle color for a combined token
+        rect.setStyle({ color: "#4CAF50", fillOpacity: 0.6 });
+
+        // update label to show new token value
         label.setIcon(
           leaflet.divIcon({
             className: "token-label",

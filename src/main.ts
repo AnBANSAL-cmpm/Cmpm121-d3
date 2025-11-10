@@ -8,6 +8,9 @@ import "./style.css"; // student-controlled page style
 // Fix missing marker images
 import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
 
+// Import our luck function
+import luck from "./_luck.ts";
+
 // === Constants ===
 const CLASSROOM_LATLNG = leaflet.latLng(
   36.997936938057016,
@@ -16,6 +19,7 @@ const CLASSROOM_LATLNG = leaflet.latLng(
 const ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4; //about 10 meters
 const GRID_RADIUS = 2; // 5x5 grid
+const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
 
 // === Setup Map Element ===
 const mapDiv = document.createElement("div");
@@ -60,9 +64,17 @@ for (let i = -GRID_RADIUS; i <= GRID_RADIUS; i++) {
       ],
     ]);
 
-    const rect = leaflet.rectangle(bounds, { color: "#3388ff", weight: 1 });
-    rect.addTo(map);
+    // Deterministic token assignment
+    const chance = luck([i, j].toString());
+    const hasToken = chance < TOKEN_PROBABILITY;
 
-    rect.bindTooltip(`Cell (${i}, ${j})`);
+    // Visualize differently if it has a token
+    const rect = leaflet.rectangle(bounds, {
+      color: hasToken ? "#3388ff" : "#999",
+      weight: 1,
+      fillOpacity: hasToken ? 0.6 : 0.2,
+    });
+    rect.addTo(map);
+    rect.bindTooltip(`Cell (${i}, ${j}) — token: ${hasToken ? "1" : "0"}`);
   }
 }

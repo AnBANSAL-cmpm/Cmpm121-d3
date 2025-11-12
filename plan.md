@@ -38,4 +38,13 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] make clickable cells: pick up token if empty hand
 - [x] if holding token, click matching cell to combine → new value
 - [x] cells visible throughout entire world (but player can only interact with nearby)
-- [x] game detects sufficent value
+- [x] game detects sufficent value (32)
+- [ ] 4 UI buttons for directions (N, S, E, W)
+- [ ] player’s position moves accordingly when direction buttons are clicked
+- [ ] detect map movement using `moveend` event to refresh visible cells
+- [ ] spawn/despawn cells dynamically to keep visible area full
+- [ ] use earth-spanning grid anchored at Null Island (0° lat, 0° lng)
+- [ ] implement helper functions to convert between lat/lng and cell coordinates
+- [ ] cells forget their state when leaving visible range (“memoryless” behavior)
+- [ ] only nearby cells (within 3-cell radius) are interactable
+- [ ] increase victory condition to crafting a token of value 32

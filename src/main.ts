@@ -27,13 +27,67 @@ const FINAL_TOKEN_VALUE = 16;
 const COLOR_TOKEN = "#4CAF50";
 const COLOR_EMPTY = "#999";
 const COLOR_COMBINED = "#c4dd38ff";
+const MOVE_STEP = TILE_DEGREES; // how much to move per button press
 
 let heldToken: number | null = null;
+
+let playerLatLng = CLASSROOM_LATLNG;
+
+function movePlayer(direction: string) {
+  switch (direction) {
+    case "north":
+      playerLatLng = leaflet.latLng(
+        playerLatLng.lat + MOVE_STEP,
+        playerLatLng.lng,
+      );
+      break;
+    case "south":
+      playerLatLng = leaflet.latLng(
+        playerLatLng.lat - MOVE_STEP,
+        playerLatLng.lng,
+      );
+      break;
+    case "east":
+      playerLatLng = leaflet.latLng(
+        playerLatLng.lat,
+        playerLatLng.lng + MOVE_STEP,
+      );
+      break;
+    case "west":
+      playerLatLng = leaflet.latLng(
+        playerLatLng.lat,
+        playerLatLng.lng - MOVE_STEP,
+      );
+      break;
+  }
+  playerMarker.setLatLng(playerLatLng);
+  map.panTo(playerLatLng);
+}
 
 //UI Elements
 const statusPanel = document.createElement("div");
 statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
+
+//Direction Buttons (N/S/E/W)
+const controlPanel = document.createElement("div");
+controlPanel.id = "controlPanel";
+document.body.appendChild(controlPanel);
+
+const directions = [
+  ["N", "north"],
+  ["S", "south"],
+  ["E", "east"],
+  ["W", "west"],
+];
+
+for (const [label, dir] of directions) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.className = "dir-btn";
+  controlPanel.appendChild(btn);
+  btn.addEventListener("click", () => movePlayer(dir));
+}
 
 function updateStatus() {
   // Display hand status and goal achievement
@@ -77,7 +131,9 @@ leaflet
   .addTo(map);
 
 // Add a marker to represent the player
-leaflet.marker(CLASSROOM_LATLNG).bindTooltip("You are here").addTo(map);
+const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
+  "You are here",
+).addTo(map);
 
 // === Draw Grid of Cells Around world ===
 for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {

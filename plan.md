@@ -47,4 +47,4 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] implement helper functions to convert between lat/lng and cell coordinates
 - [x] cells forget their state when leaving visible range (“memoryless” behavior)
 - [x] increase victory condition to crafting a token of value 32
-- [ ] fix code smells as of D.3b
+- [x] fix code smells as of D.3b

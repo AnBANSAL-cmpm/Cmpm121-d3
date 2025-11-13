@@ -121,6 +121,60 @@ const map = leaflet.map(mapDiv, {
   scrollWheelZoom: false,
 });
 
+function drawVisibleCells() {
+  // Clear old rectangles/labels before drawing new ones
+  map.eachLayer((layer) => {
+    if (layer instanceof leaflet.Rectangle) {
+      map.removeLayer(layer);
+    } else if (layer instanceof leaflet.Marker) {
+      const icon = layer.getIcon?.();
+      if (
+        icon instanceof leaflet.DivIcon &&
+        icon.options.className === "token-label"
+      ) {
+        map.removeLayer(layer);
+      }
+    }
+  });
+
+  // Get current center as the new "player" position
+  const center = map.getCenter();
+
+  // Loop through cells around the current view
+  const lat0 = center.lat;
+  const lng0 = center.lng;
+
+  for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
+    for (let j = -WORLD_RADIUS; j <= WORLD_RADIUS; j++) {
+      const bounds = leaflet.latLngBounds([
+        [lat0 + i * TILE_DEGREES, lng0 + j * TILE_DEGREES],
+        [lat0 + (i + 1) * TILE_DEGREES, lng0 + (j + 1) * TILE_DEGREES],
+      ]);
+
+      const hasToken = luck([i, j].toString()) < TOKEN_PROBABILITY;
+      const tokenValue = hasToken ? 1 : 0;
+
+      //const rect = leaflet.rectangle(bounds, {
+      //  color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
+      //  weight: 1,
+      //  fillOpacity: hasToken ? 0.6 : 0.2,
+      //}).addTo(map);q
+
+      const centerCell = bounds.getCenter();
+      leaflet.marker(centerCell, {
+        icon: leaflet.divIcon({
+          className: "token-label",
+          html: `<b>${tokenValue}</b>`,
+        }),
+        interactive: false,
+      }).addTo(map);
+    }
+  }
+}
+
+// Run it once initially
+drawVisibleCells();
+
 // Populate the map with a background tile layer
 leaflet
   .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {

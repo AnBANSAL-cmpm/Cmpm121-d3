@@ -21,7 +21,7 @@ const TILE_DEGREES = 1e-4; //about 10 meters
 const INTERACT_RADIUS = 4;
 const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
 const WORLD_RADIUS = 20;
-const FINAL_TOKEN_VALUE = 16;
+const FINAL_TOKEN_VALUE = 32;
 
 // === Color Constants ===
 const COLOR_TOKEN = "#4CAF50";
@@ -104,37 +104,21 @@ for (const [label, dir] of directions) {
 }
 
 function movePlayer(direction: string) {
-  switch (direction) {
-    case "north":
-      playerLatLng = leaflet.latLng(
-        playerLatLng.lat + MOVE_STEP,
-        playerLatLng.lng,
-      );
-      break;
-    case "south":
-      playerLatLng = leaflet.latLng(
-        playerLatLng.lat - MOVE_STEP,
-        playerLatLng.lng,
-      );
-      break;
-    case "east":
-      playerLatLng = leaflet.latLng(
-        playerLatLng.lat,
-        playerLatLng.lng + MOVE_STEP,
-      );
-      break;
-    case "west":
-      playerLatLng = leaflet.latLng(
-        playerLatLng.lat,
-        playerLatLng.lng - MOVE_STEP,
-      );
-      break;
-  }
+  const delta = {
+    north: [MOVE_STEP, 0],
+    south: [-MOVE_STEP, 0],
+    east: [0, MOVE_STEP],
+    west: [0, -MOVE_STEP],
+  } as Record<string, [number, number]>;
+
+  const [dLat, dLng] = delta[direction] || [0, 0];
+  playerLatLng = leaflet.latLng(
+    playerLatLng.lat + dLat,
+    playerLatLng.lng + dLng,
+  );
   playerMarker.setLatLng(playerLatLng);
   map.panTo(playerLatLng);
 }
-
-//bookmark
 
 // === Dynamic cells ===
 const visibleCells = new Map<
@@ -176,17 +160,6 @@ function spawnCell(i: number, j: number) {
     weight: 1,
     fillOpacity: hasToken ? 0.6 : 0.2,
   }).addTo(map);
-
-  //const center = bounds.getCenter();
-  /*
-  const label = leaflet.marker(center, {
-    icon: leaflet.divIcon({
-      className: "token-label",
-      html: `<b>${tokenValue}</b>`,
-    }),
-    interactive: false,
-  }).addTo(map);
-  */
 
   const label = leaflet.marker(cellToCenter(i, j), {
     icon: leaflet.divIcon({

@@ -45,6 +45,6 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] spawn/despawn cells dynamically to keep visible area full
 - [x] use earth-spanning grid anchored at Null Island (0° lat, 0° lng)
 - [x] implement helper functions to convert between lat/lng and cell coordinates
-- [ ] cells forget their state when leaving visible range (“memoryless” behavior)
-- [ ] only nearby cells (within 3-cell radius) are interactable
-- [ ] increase victory condition to crafting a token of value 32
+- [x] cells forget their state when leaving visible range (“memoryless” behavior)
+- [x] increase victory condition to crafting a token of value 32
+- [ ] fix code smells as of D.3b

@@ -142,24 +142,25 @@ const visibleCells = new Map<
   { rect: leaflet.Rectangle; label: leaflet.Marker; value: number }
 >();
 
+// === Helper: convert a latitude/longitude to a grid cell coordinate ===
 function latLngToCell(lat: number, lng: number) {
   return {
-    i: Math.floor((lat - CLASSROOM_LATLNG.lat) / TILE_DEGREES),
-    j: Math.floor((lng - CLASSROOM_LATLNG.lng) / TILE_DEGREES),
+    i: Math.floor(lat / TILE_DEGREES),
+    j: Math.floor(lng / TILE_DEGREES),
   };
 }
 
+// === Helper: convert a cell coordinate back to a bounding box in lat/lng ===
 function cellToBounds(i: number, j: number) {
   return leaflet.latLngBounds([
-    [
-      CLASSROOM_LATLNG.lat + i * TILE_DEGREES,
-      CLASSROOM_LATLNG.lng + j * TILE_DEGREES,
-    ],
-    [
-      CLASSROOM_LATLNG.lat + (i + 1) * TILE_DEGREES,
-      CLASSROOM_LATLNG.lng + (j + 1) * TILE_DEGREES,
-    ],
+    [i * TILE_DEGREES, j * TILE_DEGREES],
+    [(i + 1) * TILE_DEGREES, (j + 1) * TILE_DEGREES],
   ]);
+}
+
+function cellToCenter(i: number, j: number): leaflet.LatLng {
+  const bounds = cellToBounds(i, j);
+  return bounds.getCenter();
 }
 
 function spawnCell(i: number, j: number) {
@@ -168,7 +169,7 @@ function spawnCell(i: number, j: number) {
 
   const bounds = cellToBounds(i, j);
   const hasToken = luck(key) < TOKEN_PROBABILITY;
-  let tokenValue = hasToken ? 1 : 0;
+  const tokenValue = hasToken ? 1 : 0;
 
   const rect = leaflet.rectangle(bounds, {
     color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
@@ -176,7 +177,8 @@ function spawnCell(i: number, j: number) {
     fillOpacity: hasToken ? 0.6 : 0.2,
   }).addTo(map);
 
-  const center = bounds.getCenter();
+  //const center = bounds.getCenter();
+  /*
   const label = leaflet.marker(center, {
     icon: leaflet.divIcon({
       className: "token-label",
@@ -184,29 +186,34 @@ function spawnCell(i: number, j: number) {
     }),
     interactive: false,
   }).addTo(map);
+  */
 
-  // Interaction: pick up / combine token
+  const label = leaflet.marker(cellToCenter(i, j), {
+    icon: leaflet.divIcon({
+      className: "token-label",
+      html: `<b>${tokenValue}</b>`,
+    }),
+    interactive: false,
+  }).addTo(map);
+
+  // === Interaction: pick up / combine token ===
   rect.on("click", () => {
     const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
+
     if (
       Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
     ) return;
 
     if (heldToken === null && tokenValue > 0) {
       heldToken = tokenValue;
-      tokenValue = 0;
+      updateCellLabel(label, 0);
       rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
-      updateCellLabel(label, tokenValue);
-      updateStatus();
     } else if (heldToken !== null && tokenValue === heldToken) {
-      tokenValue = heldToken * 2;
       heldToken = null;
+      updateCellLabel(label, tokenValue * 2);
       rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
-      updateCellLabel(label, tokenValue);
-      updateStatus();
     }
-
-    visibleCells.set(key, { rect, label, value: tokenValue });
+    updateStatus();
   });
 
   visibleCells.set(key, { rect, label, value: tokenValue });
@@ -214,11 +221,9 @@ function spawnCell(i: number, j: number) {
 
 function refreshVisibleCells() {
   const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
-
-  const RADIUS = WORLD_RADIUS; // how many cells in each direction to keep visible
+  const RADIUS = WORLD_RADIUS;
   const newKeys = new Set<string>();
 
-  // Spawn new visible cells
   for (let di = -RADIUS; di <= RADIUS; di++) {
     for (let dj = -RADIUS; dj <= RADIUS; dj++) {
       const i = ci + di;
@@ -229,7 +234,7 @@ function refreshVisibleCells() {
     }
   }
 
-  // Despawn cells that are no longer within visible radius
+  // Despawn cells that leave visible range (forget their state)
   for (const key of visibleCells.keys()) {
     if (!newKeys.has(key)) {
       const { rect, label } = visibleCells.get(key)!;

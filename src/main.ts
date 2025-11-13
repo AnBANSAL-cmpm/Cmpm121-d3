@@ -30,8 +30,78 @@ const COLOR_COMBINED = "#c4dd38ff";
 const MOVE_STEP = TILE_DEGREES; // how much to move per button press
 
 let heldToken: number | null = null;
-
 let playerLatLng = CLASSROOM_LATLNG;
+
+// === Setup Map Element ===
+const mapDiv = document.createElement("div");
+mapDiv.id = "map";
+document.body.appendChild(mapDiv);
+
+// Create the map (element with id "map" is defined in index.html)
+const map = leaflet.map(mapDiv, {
+  center: CLASSROOM_LATLNG,
+  zoom: ZOOM_LEVEL,
+  minZoom: ZOOM_LEVEL,
+  maxZoom: ZOOM_LEVEL,
+  zoomControl: false,
+  scrollWheelZoom: false,
+});
+
+// Populate the map with a background tile layer
+leaflet
+  .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution:
+      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  })
+  .addTo(map);
+
+//UI Elements
+const statusPanel = document.createElement("div");
+statusPanel.id = "statusPanel";
+document.body.appendChild(statusPanel);
+
+function updateStatus() {
+  // Display hand status and goal achievement
+  statusPanel.innerHTML = heldToken
+    ? `🎒 Holding token: ${heldToken}${
+      heldToken >= FINAL_TOKEN_VALUE
+        ? " 🏆 You reached a sufficient token!"
+        : ""
+    }`
+    : "👐 Hand: empty";
+}
+
+function updateCellLabel(label: leaflet.Marker, value: number) {
+  label.setIcon(
+    leaflet.divIcon({ className: "token-label", html: `<b>${value}</b>` }),
+  );
+}
+
+// Add a marker to represent the player
+const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
+  "You are here",
+).addTo(map);
+
+//Direction Buttons (N/S/E/W)
+const controlPanel = document.createElement("div");
+controlPanel.id = "controlPanel";
+document.body.appendChild(controlPanel);
+
+const directions = [
+  ["N", "north"],
+  ["S", "south"],
+  ["E", "east"],
+  ["W", "west"],
+];
+
+for (const [label, dir] of directions) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.className = "dir-btn";
+  controlPanel.appendChild(btn);
+  btn.addEventListener("click", () => movePlayer(dir));
+}
 
 function movePlayer(direction: string) {
   switch (direction) {
@@ -64,197 +134,114 @@ function movePlayer(direction: string) {
   map.panTo(playerLatLng);
 }
 
-//UI Elements
-const statusPanel = document.createElement("div");
-statusPanel.id = "statusPanel";
-document.body.appendChild(statusPanel);
+//bookmark
 
-//Direction Buttons (N/S/E/W)
-const controlPanel = document.createElement("div");
-controlPanel.id = "controlPanel";
-document.body.appendChild(controlPanel);
+// === Dynamic cells ===
+const visibleCells = new Map<
+  string,
+  { rect: leaflet.Rectangle; label: leaflet.Marker; value: number }
+>();
 
-const directions = [
-  ["N", "north"],
-  ["S", "south"],
-  ["E", "east"],
-  ["W", "west"],
-];
-
-for (const [label, dir] of directions) {
-  const btn = document.createElement("button");
-  btn.textContent = label;
-  btn.className = "dir-btn";
-  controlPanel.appendChild(btn);
-  btn.addEventListener("click", () => movePlayer(dir));
+function latLngToCell(lat: number, lng: number) {
+  return {
+    i: Math.floor((lat - CLASSROOM_LATLNG.lat) / TILE_DEGREES),
+    j: Math.floor((lng - CLASSROOM_LATLNG.lng) / TILE_DEGREES),
+  };
 }
 
-function updateStatus() {
-  // Display hand status and goal achievement
-  statusPanel.innerHTML = heldToken
-    ? `🎒 Holding token: ${heldToken}${
-      heldToken >= FINAL_TOKEN_VALUE
-        ? " 🏆 You reached a sufficient token!"
-        : ""
-    }`
-    : "👐 Hand: empty";
+function cellToBounds(i: number, j: number) {
+  return leaflet.latLngBounds([
+    [
+      CLASSROOM_LATLNG.lat + i * TILE_DEGREES,
+      CLASSROOM_LATLNG.lng + j * TILE_DEGREES,
+    ],
+    [
+      CLASSROOM_LATLNG.lat + (i + 1) * TILE_DEGREES,
+      CLASSROOM_LATLNG.lng + (j + 1) * TILE_DEGREES,
+    ],
+  ]);
 }
 
-function updateCellLabel(label: leaflet.Marker, value: number) {
-  label.setIcon(
-    leaflet.divIcon({ className: "token-label", html: `<b>${value}</b>` }),
-  );
-}
+function spawnCell(i: number, j: number) {
+  const key = `${i},${j}`;
+  if (visibleCells.has(key)) return;
 
-// === Setup Map Element ===
-const mapDiv = document.createElement("div");
-mapDiv.id = "map";
-document.body.appendChild(mapDiv);
+  const bounds = cellToBounds(i, j);
+  const hasToken = luck(key) < TOKEN_PROBABILITY;
+  let tokenValue = hasToken ? 1 : 0;
 
-// Create the map (element with id "map" is defined in index.html)
-const map = leaflet.map(mapDiv, {
-  center: CLASSROOM_LATLNG,
-  zoom: ZOOM_LEVEL,
-  minZoom: ZOOM_LEVEL,
-  maxZoom: ZOOM_LEVEL,
-  zoomControl: false,
-  scrollWheelZoom: false,
-});
+  const rect = leaflet.rectangle(bounds, {
+    color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
+    weight: 1,
+    fillOpacity: hasToken ? 0.6 : 0.2,
+  }).addTo(map);
 
-function drawVisibleCells() {
-  // Clear old rectangles/labels before drawing new ones
-  map.eachLayer((layer) => {
-    if (layer instanceof leaflet.Rectangle) {
-      map.removeLayer(layer);
-    } else if (layer instanceof leaflet.Marker) {
-      const icon = layer.getIcon?.();
-      if (
-        icon instanceof leaflet.DivIcon &&
-        icon.options.className === "token-label"
-      ) {
-        map.removeLayer(layer);
-      }
+  const center = bounds.getCenter();
+  const label = leaflet.marker(center, {
+    icon: leaflet.divIcon({
+      className: "token-label",
+      html: `<b>${tokenValue}</b>`,
+    }),
+    interactive: false,
+  }).addTo(map);
+
+  // Interaction: pick up / combine token
+  rect.on("click", () => {
+    const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
+    if (
+      Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
+    ) return;
+
+    if (heldToken === null && tokenValue > 0) {
+      heldToken = tokenValue;
+      tokenValue = 0;
+      rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
+      updateCellLabel(label, tokenValue);
+      updateStatus();
+    } else if (heldToken !== null && tokenValue === heldToken) {
+      tokenValue = heldToken * 2;
+      heldToken = null;
+      rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
+      updateCellLabel(label, tokenValue);
+      updateStatus();
     }
+
+    visibleCells.set(key, { rect, label, value: tokenValue });
   });
 
-  // Get current center as the new "player" position
-  const center = map.getCenter();
+  visibleCells.set(key, { rect, label, value: tokenValue });
+}
 
-  // Loop through cells around the current view
-  const lat0 = center.lat;
-  const lng0 = center.lng;
+function refreshVisibleCells() {
+  const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
 
-  for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
-    for (let j = -WORLD_RADIUS; j <= WORLD_RADIUS; j++) {
-      const bounds = leaflet.latLngBounds([
-        [lat0 + i * TILE_DEGREES, lng0 + j * TILE_DEGREES],
-        [lat0 + (i + 1) * TILE_DEGREES, lng0 + (j + 1) * TILE_DEGREES],
-      ]);
+  const RADIUS = WORLD_RADIUS; // how many cells in each direction to keep visible
+  const newKeys = new Set<string>();
 
-      const hasToken = luck([i, j].toString()) < TOKEN_PROBABILITY;
-      const tokenValue = hasToken ? 1 : 0;
+  // Spawn new visible cells
+  for (let di = -RADIUS; di <= RADIUS; di++) {
+    for (let dj = -RADIUS; dj <= RADIUS; dj++) {
+      const i = ci + di;
+      const j = cj + dj;
+      const key = `${i},${j}`;
+      newKeys.add(key);
+      if (!visibleCells.has(key)) spawnCell(i, j);
+    }
+  }
 
-      //const rect = leaflet.rectangle(bounds, {
-      //  color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
-      //  weight: 1,
-      //  fillOpacity: hasToken ? 0.6 : 0.2,
-      //}).addTo(map);q
-
-      const centerCell = bounds.getCenter();
-      leaflet.marker(centerCell, {
-        icon: leaflet.divIcon({
-          className: "token-label",
-          html: `<b>${tokenValue}</b>`,
-        }),
-        interactive: false,
-      }).addTo(map);
+  // Despawn cells that are no longer within visible radius
+  for (const key of visibleCells.keys()) {
+    if (!newKeys.has(key)) {
+      const { rect, label } = visibleCells.get(key)!;
+      map.removeLayer(rect);
+      map.removeLayer(label);
+      visibleCells.delete(key);
     }
   }
 }
 
-// Run it once initially
-drawVisibleCells();
+//Inital Spawn
+refreshVisibleCells();
 
-// Populate the map with a background tile layer
-leaflet
-  .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution:
-      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  })
-  .addTo(map);
-
-// Add a marker to represent the player
-const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
-  "You are here",
-).addTo(map);
-
-// === Draw Grid of Cells Around world ===
-for (let i = -WORLD_RADIUS; i <= WORLD_RADIUS; i++) {
-  for (let j = -WORLD_RADIUS; j <= WORLD_RADIUS; j++) {
-    const bounds = leaflet.latLngBounds([
-      [
-        CLASSROOM_LATLNG.lat + i * TILE_DEGREES,
-        CLASSROOM_LATLNG.lng + j * TILE_DEGREES,
-      ],
-      [
-        CLASSROOM_LATLNG.lat + (i + 1) * TILE_DEGREES,
-        CLASSROOM_LATLNG.lng + (j + 1) * TILE_DEGREES,
-      ],
-    ]);
-
-    // Deterministic token assignment
-    const hasToken = luck([i, j].toString()) < TOKEN_PROBABILITY;
-    let tokenValue = hasToken ? 1 : 0;
-
-    // Visualize differently if it has a token
-    const rect = leaflet.rectangle(bounds, {
-      color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
-      weight: 1,
-      fillOpacity: hasToken ? 0.6 : 0.2,
-    }).addTo(map);
-
-    // Add token value text as a marker at center
-    const center = bounds.getCenter();
-    const label = leaflet.marker(center, {
-      icon: leaflet.divIcon({
-        className: "token-label",
-        html: `<b>${tokenValue}</b>`,
-      }),
-      interactive: false, //label itself should not capture clicks
-    }).addTo(map);
-
-    // === Interaction: pick up token if hand empty ===
-    rect.on("click", () => {
-      if (Math.abs(i) > INTERACT_RADIUS || Math.abs(j) > INTERACT_RADIUS) {
-        return; // too far, ignore click
-      }
-
-      if (heldToken === null && tokenValue > 0) {
-        // === Pick up token if hand empty ===
-        heldToken = tokenValue;
-        tokenValue = 0;
-
-        // update rectangle color
-        rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
-
-        // update label to show 0
-        updateCellLabel(label, tokenValue);
-        updateStatus();
-      } else if (heldToken !== null && tokenValue === heldToken) {
-        // === Combine token with matchqing cell ===
-        tokenValue = heldToken * 2; // double value
-        heldToken = null; // hand is now empty
-
-        // update rectangle color for a combined token
-        rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
-
-        // update label to show new token value
-        updateCellLabel(label, tokenValue);
-        updateStatus();
-      }
-    });
-  }
-}
-
-updateStatus();
+// Update cells whenever player moves
+map.on("moveend", () => refreshVisibleCells());

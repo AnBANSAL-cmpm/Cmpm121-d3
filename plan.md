@@ -49,9 +49,9 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] increase victory condition to crafting a token of value 32
 - [x] fix code smells as of D.3b
 - [x] add `modifiedCells` Map to store user-modified cells (key = "i,j", value = tokenValue)
-- [ ] update `spawnCell` so it restores tokenValue from `modifiedCells` if present (otherwise use randomness/luck)
-- [ ] when player picks up a token, save modifiedCells.set(key, 0)
-- [ ] when player combines tokens, save modifiedCells.set(key, newValue)
+- [x] update `spawnCell` so it restores tokenValue from `modifiedCells` if present (otherwise use randomness/luck)
+- [x] when player picks up a token, save modifiedCells.set(key, 0)
+- [x] when player combines tokens, save modifiedCells.set(key, newValue)
 - [ ] ensure despawn does NOT delete entries from modifiedCells (so modified cells persist)
 - [ ] verify memoryless behavior for unmodified cells but persistence for modified cells
 - [ ] refactor: extract key creation cellKey(i, j) and use everywhere

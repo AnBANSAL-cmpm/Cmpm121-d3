@@ -162,12 +162,12 @@ function spawnCell(i: number, j: number) {
 
   let tokenValue: number;
 
+  // Procedurally generate default state
+  const hasToken = luck(key) < TOKEN_PROBABILITY;
   if (modifiedCells.has(key)) {
     // Restore saved state
     tokenValue = modifiedCells.get(key)!;
   } else {
-    // Procedurally generate default state
-    const hasToken = luck(key) < TOKEN_PROBABILITY;
     tokenValue = hasToken ? 1 : 0;
   }
 
@@ -187,35 +187,38 @@ function spawnCell(i: number, j: number) {
 
   // === Interaction: pick up / combine token ===
   rect.on("click", () => {
-  const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
+    const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
 
-  if (
-    Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
-  ) return;
+    if (
+      Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
+    ) return;
 
-  let newValue = tokenValue;
+    let newValue = tokenValue;
 
-  // ---- PICK UP TOKEN ----
-  if (heldToken === null && tokenValue > 0) {
-    heldToken = tokenValue;
-    newValue = 0;
-    updateCellLabel(label, 0);
-    rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
-  }
+    // ---- PICK UP TOKEN ----
+    if (heldToken === null && tokenValue > 0) {
+      heldToken = tokenValue;
+      newValue = 0;
+      updateCellLabel(label, 0);
+      rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
 
-  // ---- COMBINE TOKEN ----
-  else if (heldToken !== null && tokenValue === heldToken) {
-    heldToken = null;
-    newValue = tokenValue * 2;
-    updateCellLabel(label, newValue);
-    rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
-  }
+      // Save modified state
+      modifiedCells.set(key, 0);
+      
+    } // ---- COMBINE TOKEN ----
+    else if (heldToken !== null && tokenValue === heldToken) {
+      // Combine tokens
+      const newValue = tokenValue * 2;
+      heldToken = null;
+      updateCellLabel(label, newValue);
+      rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
+    }
 
-  // ---- SAVE THE UPDATED VALUE ----
-  modifiedCells.set(key, newValue);
+    // ---- SAVE THE UPDATED VALUE ----
+    modifiedCells.set(key, newValue);
 
-  updateStatus();
-});
+    updateStatus();
+  });
 
   visibleCells.set(key, { rect, label, value: tokenValue });
 }

@@ -48,3 +48,11 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] cells forget their state when leaving visible range (“memoryless” behavior)
 - [x] increase victory condition to crafting a token of value 32
 - [x] fix code smells as of D.3b
+- [ ] add `modifiedCells` Map to store user-modified cells (key = "i,j", value = tokenValue)
+- [ ] update `spawnCell` so it restores tokenValue from `modifiedCells` if present (otherwise use randomness/luck)
+- [ ] when player picks up a token, save modifiedCells.set(key, 0)
+- [ ] when player combines tokens, save modifiedCells.set(key, newValue)
+- [ ] ensure despawn does NOT delete entries from modifiedCells (so modified cells persist)
+- [ ] verify memoryless behavior for unmodified cells but persistence for modified cells
+- [ ] refactor: extract key creation cellKey(i, j) and use everywhere
+- [ ] add a minimal test plan (move → pick up → leave area → return → confirm cell state persists)

@@ -120,6 +120,13 @@ function movePlayer(direction: string) {
   map.panTo(playerLatLng);
 }
 
+// === Persistent memory for modified cells (Memento storage) ===
+const modifiedCells = new Map<string, number>();
+
+//function cellKey(i: number, j: number): string {
+//  return `${i},${j}`;
+//}
+
 // === Dynamic cells ===
 const visibleCells = new Map<
   string,
@@ -152,8 +159,17 @@ function spawnCell(i: number, j: number) {
   if (visibleCells.has(key)) return;
 
   const bounds = cellToBounds(i, j);
-  const hasToken = luck(key) < TOKEN_PROBABILITY;
-  const tokenValue = hasToken ? 1 : 0;
+
+  let tokenValue: number;
+
+  if (modifiedCells.has(key)) {
+    // Restore saved state
+    tokenValue = modifiedCells.get(key)!;
+  } else {
+    // Procedurally generate default state
+    const hasToken = luck(key) < TOKEN_PROBABILITY;
+    tokenValue = hasToken ? 1 : 0;
+  }
 
   const rect = leaflet.rectangle(bounds, {
     color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
@@ -171,23 +187,35 @@ function spawnCell(i: number, j: number) {
 
   // === Interaction: pick up / combine token ===
   rect.on("click", () => {
-    const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
+  const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
 
-    if (
-      Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
-    ) return;
+  if (
+    Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
+  ) return;
 
-    if (heldToken === null && tokenValue > 0) {
-      heldToken = tokenValue;
-      updateCellLabel(label, 0);
-      rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
-    } else if (heldToken !== null && tokenValue === heldToken) {
-      heldToken = null;
-      updateCellLabel(label, tokenValue * 2);
-      rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
-    }
-    updateStatus();
-  });
+  let newValue = tokenValue;
+
+  // ---- PICK UP TOKEN ----
+  if (heldToken === null && tokenValue > 0) {
+    heldToken = tokenValue;
+    newValue = 0;
+    updateCellLabel(label, 0);
+    rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
+  }
+
+  // ---- COMBINE TOKEN ----
+  else if (heldToken !== null && tokenValue === heldToken) {
+    heldToken = null;
+    newValue = tokenValue * 2;
+    updateCellLabel(label, newValue);
+    rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
+  }
+
+  // ---- SAVE THE UPDATED VALUE ----
+  modifiedCells.set(key, newValue);
+
+  updateStatus();
+});
 
   visibleCells.set(key, { rect, label, value: tokenValue });
 }

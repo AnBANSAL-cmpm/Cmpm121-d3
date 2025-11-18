@@ -171,10 +171,16 @@ function spawnCell(i: number, j: number) {
     tokenValue = hasToken ? 1 : 0;
   }
 
+  //helper function for rect
+  function cellStyle(value: number) {
+    if (value <= 0) return { color: COLOR_EMPTY, fillOpacity: 0.2 };
+    if (value === 1) return { color: COLOR_TOKEN, fillOpacity: 0.6 };
+    return { color: COLOR_COMBINED, fillOpacity: 0.6 }; // combined cells
+  }
+
   const rect = leaflet.rectangle(bounds, {
-    color: hasToken ? COLOR_TOKEN : COLOR_EMPTY,
+    ...cellStyle(tokenValue),
     weight: 1,
-    fillOpacity: hasToken ? 0.6 : 0.2,
   }).addTo(map);
 
   const label = leaflet.marker(cellToCenter(i, j), {
@@ -193,18 +199,17 @@ function spawnCell(i: number, j: number) {
       Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
     ) return;
 
-    let newValue = tokenValue;
+    const newValue = tokenValue;
 
     // ---- PICK UP TOKEN ----
     if (heldToken === null && tokenValue > 0) {
       heldToken = tokenValue;
-      newValue = 0;
+      //newValue = 0;
       updateCellLabel(label, 0);
       rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
 
       // Save modified state
       modifiedCells.set(key, 0);
-      
     } // ---- COMBINE TOKEN ----
     else if (heldToken !== null && tokenValue === heldToken) {
       // Combine tokens
@@ -238,7 +243,7 @@ function refreshVisibleCells() {
     }
   }
 
-  // Despawn cells that leave visible range (forget their state)
+  // Despawn cells that leave visible range (forget their state), but does not delete from modifiedCells
   for (const key of visibleCells.keys()) {
     if (!newKeys.has(key)) {
       const { rect, label } = visibleCells.get(key)!;

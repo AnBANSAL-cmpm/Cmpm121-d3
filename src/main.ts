@@ -154,6 +154,13 @@ function cellToCenter(i: number, j: number): leaflet.LatLng {
   return bounds.getCenter();
 }
 
+//helper function for rect
+function cellStyle(value: number) {
+  if (value <= 0) return { color: COLOR_EMPTY, fillOpacity: 0.2 };
+  if (value === 1) return { color: COLOR_TOKEN, fillOpacity: 0.6 };
+  return { color: COLOR_COMBINED, fillOpacity: 0.6 }; // combined cells
+}
+
 function spawnCell(i: number, j: number) {
   const key = cellKey(i, j);
   if (visibleCells.has(key)) return;
@@ -163,19 +170,13 @@ function spawnCell(i: number, j: number) {
   let tokenValue: number;
 
   // Procedurally generate default state
-  const hasToken = luck(key) < TOKEN_PROBABILITY;
+
   if (modifiedCells.has(key)) {
     // Restore saved state
     tokenValue = modifiedCells.get(key)!;
   } else {
+    const hasToken = luck(key) < TOKEN_PROBABILITY;
     tokenValue = hasToken ? 1 : 0;
-  }
-
-  //helper function for rect
-  function cellStyle(value: number) {
-    if (value <= 0) return { color: COLOR_EMPTY, fillOpacity: 0.2 };
-    if (value === 1) return { color: COLOR_TOKEN, fillOpacity: 0.6 };
-    return { color: COLOR_COMBINED, fillOpacity: 0.6 }; // combined cells
   }
 
   const rect = leaflet.rectangle(bounds, {
@@ -209,21 +210,20 @@ function spawnCell(i: number, j: number) {
       rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
 
       // Save modified state
-      //modifiedCells.set(key, 0);
       modifiedCells.set(cellKey(i, j), newValue);
     } // ---- COMBINE TOKEN ----
     else if (heldToken !== null && tokenValue === heldToken) {
       // Combine tokens
-      const newValue = tokenValue * 2;
+      newValue = tokenValue * 2;
+      modifiedCells.set(cellKey(i, j), newValue);
       heldToken = null;
       updateCellLabel(label, newValue);
       rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
     }
-
+    tokenValue = newValue;
     // ---- SAVE THE UPDATED VALUE ----
-    //modifiedCells.set(key, newValue);
-    modifiedCells.set(cellKey(i, j), newValue);
-
+    const old = visibleCells.get(key)!;
+    visibleCells.set(key, { ...old, value: newValue });
     updateStatus();
   });
 

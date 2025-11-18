@@ -103,6 +103,10 @@ for (const [label, dir] of directions) {
   btn.addEventListener("click", () => movePlayer(dir));
 }
 
+function cellKey(i: number, j: number): string {
+  return `${i},${j}`;
+}
+
 function movePlayer(direction: string) {
   const delta = {
     north: [MOVE_STEP, 0],
@@ -122,10 +126,6 @@ function movePlayer(direction: string) {
 
 // === Persistent memory for modified cells (Memento storage) ===
 const modifiedCells = new Map<string, number>();
-
-//function cellKey(i: number, j: number): string {
-//  return `${i},${j}`;
-//}
 
 // === Dynamic cells ===
 const visibleCells = new Map<
@@ -155,7 +155,7 @@ function cellToCenter(i: number, j: number): leaflet.LatLng {
 }
 
 function spawnCell(i: number, j: number) {
-  const key = `${i},${j}`;
+  const key = cellKey(i, j);
   if (visibleCells.has(key)) return;
 
   const bounds = cellToBounds(i, j);
@@ -199,17 +199,18 @@ function spawnCell(i: number, j: number) {
       Math.abs(i - ci) > INTERACT_RADIUS || Math.abs(j - cj) > INTERACT_RADIUS
     ) return;
 
-    const newValue = tokenValue;
+    let newValue = tokenValue;
 
     // ---- PICK UP TOKEN ----
     if (heldToken === null && tokenValue > 0) {
       heldToken = tokenValue;
-      //newValue = 0;
+      newValue = 0;
       updateCellLabel(label, 0);
       rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
 
       // Save modified state
-      modifiedCells.set(key, 0);
+      //modifiedCells.set(key, 0);
+      modifiedCells.set(cellKey(i, j), newValue);
     } // ---- COMBINE TOKEN ----
     else if (heldToken !== null && tokenValue === heldToken) {
       // Combine tokens
@@ -220,7 +221,8 @@ function spawnCell(i: number, j: number) {
     }
 
     // ---- SAVE THE UPDATED VALUE ----
-    modifiedCells.set(key, newValue);
+    //modifiedCells.set(key, newValue);
+    modifiedCells.set(cellKey(i, j), newValue);
 
     updateStatus();
   });
@@ -237,7 +239,7 @@ function refreshVisibleCells() {
     for (let dj = -RADIUS; dj <= RADIUS; dj++) {
       const i = ci + di;
       const j = cj + dj;
-      const key = `${i},${j}`;
+      const key = cellKey(i, j);
       newKeys.add(key);
       if (!visibleCells.has(key)) spawnCell(i, j);
     }

@@ -53,6 +53,5 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] when player picks up a token, save modifiedCells.set(key, 0)
 - [x] when player combines tokens, save modifiedCells.set(key, newValue)
 - [x] ensure despawn does NOT delete entries from modifiedCells (so modified cells persist)
-- [ ] verify memoryless behavior for unmodified cells but persistence for modified cells
-- [ ] refactor: extract key creation cellKey(i, j) and use everywhere
-- [ ] add a minimal test plan (move → pick up → leave area → return → confirm cell state persists)
+- [x] verify memoryless behavior for unmodified cells but persistence for modified cells
+- [ ] refactoring D3.c: extract key creation cellKey(i, j) and use everywhere

@@ -55,3 +55,12 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] ensure despawn does NOT delete entries from modifiedCells (so modified cells persist)
 - [x] verify memoryless behavior for unmodified cells but persistence for modified cells
 - [ ] refactoring D3.c: extract key creation cellKey(i, j) and use everywhere
+- [ ] add MovementFacade interface to decouple game from how player moves
+- [ ] implement ButtonMovement (adapter) that uses existing button controls (wrapper)
+- [ ] implement GeoMovement (adapter) that uses browser geolocation API (watchPosition)
+- [ ] add runtime toggle UI to switch between ButtonMovement and GeoMovement
+- [ ] hide movement details behind MovementFacade so rest of game uses only facade methods/events
+- [ ] persist game state (playerLatLng, heldToken, modifiedCells) to localStorage on every meaningful change
+- [ ] on load, restore game state from localStorage if present
+- [ ] provide a "New Game" control that clears stored state and resets map
+- [ ] ensure safe permission handling and fallback: if geolocation denied, fall back to ButtonMovement

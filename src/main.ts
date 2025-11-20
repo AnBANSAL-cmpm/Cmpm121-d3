@@ -11,6 +11,10 @@ import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
 // Import our luck function
 import luck from "./_luck.ts";
 
+// FIXED: Import GeoMovement from the correct file
+import { ButtonMovement } from "./Movement.ts";
+import { GeoMovement } from "./GeoMovement.ts";
+
 // === Constants ===
 const CLASSROOM_LATLNG = leaflet.latLng(
   36.997936938057016,
@@ -83,29 +87,8 @@ const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
   "You are here",
 ).addTo(map);
 
-//Direction Buttons (N/S/E/W)
-const controlPanel = document.createElement("div");
-controlPanel.id = "controlPanel";
-document.body.appendChild(controlPanel);
-
-const directions = [
-  ["N", "north"],
-  ["S", "south"],
-  ["E", "east"],
-  ["W", "west"],
-];
-
-for (const [label, dir] of directions) {
-  const btn = document.createElement("button");
-  btn.textContent = label;
-  btn.className = "dir-btn";
-  controlPanel.appendChild(btn);
-  btn.addEventListener("click", () => movePlayer(dir));
-}
-
-function cellKey(i: number, j: number): string {
-  return `${i},${j}`;
-}
+const useGPS = new URLSearchParams(location.search).get("gps") === "1";
+const movementController = useGPS ? new GeoMovement() : new ButtonMovement();
 
 function movePlayer(direction: string) {
   const delta = {
@@ -120,8 +103,54 @@ function movePlayer(direction: string) {
     playerLatLng.lat + dLat,
     playerLatLng.lng + dLng,
   );
+}
+
+movementController.onMove?.((update: leaflet.LatLng | string) => {
+  if (typeof update === "string") {
+    // Button movement - update is a direction string
+    movePlayer(update);
+  } else if (update instanceof leaflet.LatLng) {
+    // GPS movement - update is already a LatLng
+    playerLatLng = update;
+  }
+
   playerMarker.setLatLng(playerLatLng);
   map.panTo(playerLatLng);
+  refreshVisibleCells();
+});
+
+// FIXED: Start movement controller
+movementController.start?.();
+
+//Direction Buttons (N/S/E/W)
+const controlPanel = document.createElement("div");
+controlPanel.id = "controlPanel";
+document.body.appendChild(controlPanel);
+
+if (useGPS) {
+  controlPanel.style.display = "none";
+}
+
+const directions = [
+  ["N", "north"],
+  ["S", "south"],
+  ["E", "east"],
+  ["W", "west"],
+];
+
+for (const [label, dir] of directions) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.className = "dir-btn";
+  controlPanel.appendChild(btn);
+  btn.addEventListener(
+    "click",
+    () => movementController.move?.(dir as "north" | "south" | "east" | "west"),
+  );
+}
+
+function cellKey(i: number, j: number): string {
+  return `${i},${j}`;
 }
 
 // === Persistent memory for modified cells (Memento storage) ===
@@ -258,6 +287,3 @@ function refreshVisibleCells() {
 
 //Inital Spawn
 refreshVisibleCells();
-
-// Update cells whenever player moves
-map.on("moveend", () => refreshVisibleCells());

@@ -12,8 +12,8 @@ import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
 import luck from "./_luck.ts";
 
 // FIXED: Import GeoMovement from the correct file
-import { ButtonMovement } from "./Movement.ts";
 import { GeoMovement } from "./GeoMovement.ts";
+import { ButtonMovement } from "./Movement.ts";
 
 // === Constants ===
 const CLASSROOM_LATLNG = leaflet.latLng(
@@ -121,6 +121,10 @@ movementController.onMove?.((update: leaflet.LatLng | string) => {
 
 // FIXED: Start movement controller
 movementController.start?.();
+
+map.on("moveend", () => {
+  refreshVisibleCells();
+});
 
 //Direction Buttons (N/S/E/W)
 const controlPanel = document.createElement("div");
@@ -260,7 +264,8 @@ function spawnCell(i: number, j: number) {
 }
 
 function refreshVisibleCells() {
-  const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
+  const mapCenter = map.getCenter();
+  const { i: ci, j: cj } = latLngToCell(mapCenter.lat, mapCenter.lng);
   const RADIUS = WORLD_RADIUS;
   const newKeys = new Set<string>();
 

@@ -57,7 +57,7 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [ ] refactoring D3.c: extract key creation cellKey(i, j) and use everywhere
 - [x] add MovementFacade interface to decouple game from how player moves
 - [x] implement ButtonMovement (adapter) that uses existing button controls (wrapper)
-- [ ] implement GeoMovement (adapter) that uses browser geolocation API (watchPosition)
+- [x] implement GeoMovement (adapter) that uses browser geolocation API (watchPosition)
 - [ ] add runtime toggle UI to switch between ButtonMovement and GeoMovement
 - [ ] hide movement details behind MovementFacade so rest of game uses only facade methods/events
 - [ ] persist game state (playerLatLng, heldToken, modifiedCells) to localStorage on every meaningful change

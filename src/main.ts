@@ -33,8 +33,59 @@ const COLOR_EMPTY = "#999";
 const COLOR_COMBINED = "#c4dd38ff";
 const MOVE_STEP = TILE_DEGREES; // how much to move per button press
 
+// === Persistence keys ===
+const STORAGE_KEY_PLAYER_POS = "playerPosition";
+const STORAGE_KEY_HELD_TOKEN = "heldToken";
+const STORAGE_KEY_MODIFIED_CELLS = "modifiedCells";
+
+// === Load saved state ===
+function loadGameState() {
+  // Load player position
+  const savedPos = localStorage.getItem(STORAGE_KEY_PLAYER_POS);
+  if (savedPos) {
+    const { lat, lng } = JSON.parse(savedPos);
+    playerLatLng = leaflet.latLng(lat, lng);
+  }
+
+  // Load held token
+  const savedToken = localStorage.getItem(STORAGE_KEY_HELD_TOKEN);
+  if (savedToken) {
+    heldToken = JSON.parse(savedToken);
+  }
+
+  // Load modified cells
+  const savedCells = localStorage.getItem(STORAGE_KEY_MODIFIED_CELLS);
+  if (savedCells) {
+    const cellsArray = JSON.parse(savedCells);
+    cellsArray.forEach(([key, value]: [string, number]) => {
+      modifiedCells.set(key, value);
+    });
+  }
+}
+
+// === Save game state ===
+function saveGameState() {
+  // Save player position
+  localStorage.setItem(
+    STORAGE_KEY_PLAYER_POS,
+    JSON.stringify({ lat: playerLatLng.lat, lng: playerLatLng.lng }),
+  );
+
+  // Save held token
+  localStorage.setItem(STORAGE_KEY_HELD_TOKEN, JSON.stringify(heldToken));
+
+  // Save modified cells
+  const cellsArray = Array.from(modifiedCells.entries());
+  localStorage.setItem(STORAGE_KEY_MODIFIED_CELLS, JSON.stringify(cellsArray));
+}
+
 let heldToken: number | null = null;
 let playerLatLng = CLASSROOM_LATLNG;
+
+// === Persistent memory for modified cells (Memento storage) ===
+const modifiedCells = new Map<string, number>();
+
+loadGameState();
 
 // === Setup Map Element ===
 const mapDiv = document.createElement("div");
@@ -117,6 +168,7 @@ movementController.onMove?.((update: leaflet.LatLng | string) => {
   playerMarker.setLatLng(playerLatLng);
   map.panTo(playerLatLng);
   refreshVisibleCells();
+  saveGameState();
 });
 
 // FIXED: Start movement controller
@@ -156,9 +208,6 @@ for (const [label, dir] of directions) {
 function cellKey(i: number, j: number): string {
   return `${i},${j}`;
 }
-
-// === Persistent memory for modified cells (Memento storage) ===
-const modifiedCells = new Map<string, number>();
 
 // === Dynamic cells ===
 const visibleCells = new Map<
@@ -292,3 +341,4 @@ function refreshVisibleCells() {
 
 //Inital Spawn
 refreshVisibleCells();
+updateStatus();

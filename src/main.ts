@@ -2,11 +2,11 @@
 import leaflet from "leaflet";
 
 // Style sheets
-import "leaflet/dist/leaflet.css"; // supporting style for Leaflet
-import "./style.css"; // student-controlled page style
+import "leaflet/dist/leaflet.css";
+import "./style.css";
 
 // Fix missing marker images
-import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
+import "./_leafletWorkaround.ts";
 
 // Import our luck function
 import luck from "./_luck.ts";
@@ -20,9 +20,9 @@ const CLASSROOM_LATLNG = leaflet.latLng(
   -122.05703507501151,
 );
 const ZOOM_LEVEL = 19;
-const TILE_DEGREES = 1e-4; //about 10 meters
-const INTERACT_RADIUS = 4; //can interact within 4 cells
-const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
+const TILE_DEGREES = 1e-4;
+const INTERACT_RADIUS = 4;
+const TOKEN_PROBABILITY = 0.3;
 const WORLD_RADIUS = 20;
 const FINAL_TOKEN_VALUE = 32;
 
@@ -30,7 +30,7 @@ const FINAL_TOKEN_VALUE = 32;
 const COLOR_TOKEN = "#4CAF50";
 const COLOR_EMPTY = "#999";
 const COLOR_MERGED_TOKEN = "#c4dd38ff";
-const MOVE_STEP = TILE_DEGREES; // how much to move per button press
+const MOVE_STEP = TILE_DEGREES;
 
 //Persistence keys
 const STORAGE_KEY_PLAYER_POS = "playerPosition";
@@ -39,20 +39,17 @@ const STORAGE_KEY_MODIFIED_CELLS = "modifiedCells";
 
 // Load saved state
 function loadGameState() {
-  // Load player position
   const savedPos = localStorage.getItem(STORAGE_KEY_PLAYER_POS);
   if (savedPos) {
     const { lat, lng } = JSON.parse(savedPos);
     playerLatLng = leaflet.latLng(lat, lng);
   }
 
-  // Load held token
   const savedToken = localStorage.getItem(STORAGE_KEY_HELD_TOKEN);
   if (savedToken) {
     heldToken = JSON.parse(savedToken);
   }
 
-  // Load modified cells
   const savedCells = localStorage.getItem(STORAGE_KEY_MODIFIED_CELLS);
   if (savedCells) {
     const cellsArray = JSON.parse(savedCells);
@@ -64,16 +61,13 @@ function loadGameState() {
 
 // Save game state
 function saveGameState() {
-  // Save player position
   localStorage.setItem(
     STORAGE_KEY_PLAYER_POS,
     JSON.stringify({ lat: playerLatLng.lat, lng: playerLatLng.lng }),
   );
 
-  // Save held token
   localStorage.setItem(STORAGE_KEY_HELD_TOKEN, JSON.stringify(heldToken));
 
-  // Save modified cells
   const cellsArray = Array.from(modifiedCells.entries());
   localStorage.setItem(STORAGE_KEY_MODIFIED_CELLS, JSON.stringify(cellsArray));
 }
@@ -91,7 +85,7 @@ const mapDiv = document.createElement("div");
 mapDiv.id = "map";
 document.body.appendChild(mapDiv);
 
-// Create the map (element with id "map" is defined in index.html)
+// Create the map
 const map = leaflet.map(mapDiv, {
   center: CLASSROOM_LATLNG,
   zoom: ZOOM_LEVEL,
@@ -116,7 +110,6 @@ statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
 
 function updateStatus() {
-  // Display hand status and goal achievement
   statusPanel.innerHTML = heldToken
     ? `🎒 Holding token: ${heldToken}${
       heldToken >= FINAL_TOKEN_VALUE
@@ -138,6 +131,8 @@ const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
 map.setView(playerLatLng);
 
 const useGPS = new URLSearchParams(location.search).get("gps") === "1";
+console.log("GPS Mode:", useGPS);
+
 let movementController = useGPS ? new GeoMovement() : new ButtonMovement();
 
 function movePlayer(direction: string) {
@@ -171,11 +166,16 @@ function setupMovementCallbacks() {
 }
 
 setupMovementCallbacks();
+
+// Handle GPS errors - fallback to button mode
 movementController.onError?.((error) => {
-  console.warn(
-    "Geolocation failed, falling back to button controls:",
-    error.message,
-  );
+  console.error("GPS Error Details:", {
+    code: error.code,
+    message: error.message,
+    PERMISSION_DENIED: error.code === 1,
+    POSITION_UNAVAILABLE: error.code === 2,
+    TIMEOUT: error.code === 3,
+  });
 
   // Stop GPS controller
   movementController.stop?.();
@@ -183,48 +183,74 @@ movementController.onError?.((error) => {
   // Switch to button movement
   movementController = new ButtonMovement();
   setupMovementCallbacks();
-
-  // Start button controller
   movementController.start?.();
 
-  // Update toggle button text
-  const toggleBtn = document.querySelector(
-    "#controlPanel button",
-  ) as HTMLButtonElement;
+  // Update UI
+  const toggleBtn = document.getElementById("toggleBtn") as HTMLButtonElement;
   if (toggleBtn) {
     toggleBtn.textContent = "🎮 Button Mode, click to switch to GPS";
   }
 
   // Show direction buttons
-  const dirButtons = controlPanel.querySelectorAll(".dir-btn");
+  const dirButtons = document.querySelectorAll(".dir-btn");
   dirButtons.forEach((btn) => {
-    (btn as HTMLElement).style.display = "block";
+    if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {
+      (btn as HTMLElement).style.display = "block";
+    }
   });
 
-  // Alert user
-  alert("Location access denied or unavailable. Switched to button controls.");
+  // Hide Enable GPS button
+  const startGPSButton = document.getElementById("start") as HTMLButtonElement;
+  if (startGPSButton) {
+    startGPSButton.style.display = "none";
+  }
+
+  // Alert user with specific error
+  const errorMessages = {
+    1: "Location permission denied. Please enable location access in your device settings.",
+    2: "Location unavailable. Please check your device's location settings.",
+    3: "Location request timed out. Please try again.",
+  };
+  alert(errorMessages[error.code as 1 | 2 | 3] || `GPS Error: ${error.message}`);
 });
 
-//Handle errors from GeoMovement
+// DON'T auto-start GPS mode
 if (!useGPS) {
+  console.log("Starting button movement mode");
   movementController.start?.();
+} else {
+  console.log("GPS mode - waiting for user to click Enable GPS button");
 }
 
 // Handle the "Enable GPS" button from index.html
 const startGPSButton = document.getElementById("start") as HTMLButtonElement;
-if (startGPSButton && useGPS) {
-  startGPSButton.addEventListener("click", () => {
-    console.log("User clicked Enable GPS button");
 
-    // Start GPS tracking (this is now inside a user gesture)
-    movementController.start?.();
-
-    // Hide the button after clicking
+if (startGPSButton) {
+  if (useGPS) {
+    console.log("Enable GPS button found, setting up click handler");
+    startGPSButton.style.display = "block";
+    
+    startGPSButton.addEventListener("click", () => {
+      console.log("Enable GPS button clicked!");
+      
+      // Check if geolocation is supported
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser");
+        return;
+      }
+      
+      console.log("Starting GPS tracking from user gesture...");
+      
+      // Start GPS tracking (this is now inside a user gesture)
+      movementController.start?.();
+      
+      // Hide the button after clicking
+      startGPSButton.style.display = "none";
+    });
+  } else {
+    // If not in GPS mode, hide the button immediately
     startGPSButton.style.display = "none";
-  });
-} else if (startGPSButton && !useGPS) {
-  // If not in GPS mode, hide the button immediately
-  startGPSButton.style.display = "none";
+  }
 }
 
 map.on("moveend", () => {
@@ -236,8 +262,86 @@ const controlPanel = document.createElement("div");
 controlPanel.id = "controlPanel";
 document.body.appendChild(controlPanel);
 
+//TOGGLE BUTTON
+const toggleBtn = document.createElement("button");
+toggleBtn.id = "toggleBtn";
+toggleBtn.textContent = movementController.isGPSBased?.()
+  ? "📍 GPS Mode, click to switch to Button"
+  : "🎮 Button Mode, click to switch to GPS";
+toggleBtn.className = "dir-btn";
+toggleBtn.style.width = "100%";
+toggleBtn.style.marginBottom = "10px";
+controlPanel.appendChild(toggleBtn);
+
+toggleBtn.addEventListener("click", () => {
+  console.log("Toggle button clicked");
+  movementController.stop?.();
+
+  if (movementController instanceof GeoMovement) {
+    // Switching FROM GPS TO Button
+    console.log("Switching to Button mode");
+    movementController = new ButtonMovement();
+    toggleBtn.textContent = "🎮 Button Mode, click to switch to GPS";
+    
+    const dirButtons = document.querySelectorAll(".dir-btn");
+    dirButtons.forEach((btn) => {
+      if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {
+        (btn as HTMLElement).style.display = "block";
+      }
+    });
+
+    if (startGPSButton) {
+      startGPSButton.style.display = "none";
+    }
+
+    setupMovementCallbacks();
+    movementController.start?.();
+  } else {
+    // Switching FROM Button TO GPS
+    console.log("Switching to GPS mode");
+    movementController = new GeoMovement();
+    toggleBtn.textContent = "📍 GPS Mode, click to switch to Button";
+    
+    const dirButtons = document.querySelectorAll(".dir-btn");
+    dirButtons.forEach((btn) => {
+      if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {
+        (btn as HTMLElement).style.display = "none";
+      }
+    });
+
+    // Show the Enable GPS button so user can grant permission
+    if (startGPSButton) {
+      console.log("Showing Enable GPS button");
+      startGPSButton.style.display = "block";
+    }
+    
+    setupMovementCallbacks();
+    // DON'T auto-start - wait for user to click "Enable GPS" button
+  }
+});
+
+// Direction buttons
+const directions = [
+  ["N", "north"],
+  ["S", "south"],
+  ["E", "east"],
+  ["W", "west"],
+];
+
+for (const [label, dir] of directions) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.className = "dir-btn";
+  controlPanel.appendChild(btn);
+  btn.addEventListener(
+    "click",
+    () => movementController.move?.(dir as "north" | "south" | "east" | "west"),
+  );
+}
+
 // Reset button
 const resetBtn = document.createElement("button");
+resetBtn.id = "resetBtn";
 resetBtn.textContent = "🔄 Reset Game";
 resetBtn.className = "dir-btn";
 resetBtn.style.marginTop = "10px";
@@ -258,76 +362,11 @@ resetBtn.addEventListener("click", () => {
 // Initially hide direction buttons if in GPS mode
 if (movementController instanceof GeoMovement) {
   const dirButtons = controlPanel.querySelectorAll(".dir-btn");
-  dirButtons.forEach((btn, index) => {
-    if (index > 0 && btn !== resetBtn) {
+  dirButtons.forEach((btn) => {
+    if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {
       (btn as HTMLElement).style.display = "none";
     }
   });
-}
-
-//TOGGLE BUTTON
-const toggleBtn = document.createElement("button");
-toggleBtn.textContent = movementController.isGPSBased?.()
-  ? "📍 , click to switch to Button"
-  : "🎮 Button Mode, click to switch to GPS";
-toggleBtn.className = "dir-btn";
-toggleBtn.style.width = "100%";
-toggleBtn.style.marginBottom = "10px";
-controlPanel.appendChild(toggleBtn);
-
-toggleBtn.addEventListener("click", () => {
-  movementController.stop?.();
-
-  if (movementController instanceof GeoMovement) {
-    movementController = new ButtonMovement();
-    toggleBtn.textContent = "🎮 Button Mode, click to switch to GPS";
-    const dirButtons = controlPanel.querySelectorAll(".dir-btn");
-    dirButtons.forEach((btn) => {
-      if (btn !== toggleBtn && btn !== resetBtn) {
-        (btn as HTMLElement).style.display = "block";
-      }
-    });
-
-    if (startGPSButton) {
-      startGPSButton.style.display = "none";
-    }
-
-    setupMovementCallbacks();
-    movementController.start?.();
-  } else {
-    movementController = new GeoMovement();
-    toggleBtn.textContent = "📍 GPS Mode, click to switch to Button";
-    const dirButtons = controlPanel.querySelectorAll(".dir-btn");
-    dirButtons.forEach((btn) => {
-      if (btn !== toggleBtn && btn !== resetBtn) {
-        (btn as HTMLElement).style.display = "none";
-      }
-    });
-
-    // Show the Enable GPS button so user can grant permission
-    if (startGPSButton) {
-      startGPSButton.style.display = "block";
-    }
-    setupMovementCallbacks();
-  }
-});
-
-const directions = [
-  ["N", "north"],
-  ["S", "south"],
-  ["E", "east"],
-  ["W", "west"],
-];
-
-for (const [label, dir] of directions) {
-  const btn = document.createElement("button");
-  btn.textContent = label;
-  btn.className = "dir-btn";
-  controlPanel.appendChild(btn);
-  btn.addEventListener(
-    "click",
-    () => movementController.move?.(dir as "north" | "south" | "east" | "west"),
-  );
 }
 
 function cellKey(i: number, j: number): string {
@@ -365,7 +404,7 @@ function cellToCenter(i: number, j: number): leaflet.LatLng {
 function cellStyle(value: number) {
   if (value <= 0) return { color: COLOR_EMPTY, fillOpacity: 0.2 };
   if (value === 1) return { color: COLOR_TOKEN, fillOpacity: 0.6 };
-  return { color: COLOR_MERGED_TOKEN, fillOpacity: 0.6 }; // combined cells
+  return { color: COLOR_MERGED_TOKEN, fillOpacity: 0.6 };
 }
 
 function spawnCell(i: number, j: number) {
@@ -376,10 +415,7 @@ function spawnCell(i: number, j: number) {
 
   let tokenValue: number;
 
-  // Procedurally generate default state
-
   if (modifiedCells.has(key)) {
-    // Restore saved state
     tokenValue = modifiedCells.get(key)!;
   } else {
     const hasToken = luck(key) < TOKEN_PROBABILITY;
@@ -409,18 +445,13 @@ function spawnCell(i: number, j: number) {
 
     let newValue = tokenValue;
 
-    // ---- PICK UP TOKEN ----
     if (heldToken === null && tokenValue > 0) {
       heldToken = tokenValue;
       newValue = 0;
       updateCellLabel(label, 0);
       rect.setStyle({ color: COLOR_EMPTY, fillOpacity: 0.2 });
-
-      // Save modified state
       modifiedCells.set(cellKey(i, j), newValue);
-    } // ---- COMBINE TOKEN ----
-    else if (heldToken !== null && tokenValue === heldToken) {
-      // Combine tokens
+    } else if (heldToken !== null && tokenValue === heldToken) {
       newValue = tokenValue * 2;
       modifiedCells.set(cellKey(i, j), newValue);
       heldToken = null;
@@ -428,7 +459,6 @@ function spawnCell(i: number, j: number) {
       rect.setStyle({ color: COLOR_MERGED_TOKEN, fillOpacity: 0.6 });
     }
     tokenValue = newValue;
-    // ---- SAVE THE UPDATED VALUE ----
     const old = visibleCells.get(key)!;
     visibleCells.set(key, { ...old, value: newValue });
     updateStatus();
@@ -455,7 +485,6 @@ function refreshVisibleCells() {
     }
   }
 
-  // Despawn cells that leave visible range (forget their state), but does not delete from modifiedCells
   for (const key of visibleCells.keys()) {
     if (!newKeys.has(key)) {
       const { rect, label } = visibleCells.get(key)!;

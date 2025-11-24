@@ -7,7 +7,7 @@ export class GeoMovement implements MovementFacade {
   private moveCb?: (latlng: leaflet.LatLng) => void;
   private errorCb?: (error: GeolocationPositionError) => void;
   private lastPos: GeolocationCoordinates | null = null;
-  private sensitivity = 0.00005; // ~5m threshold
+  private sensitivity = 0.0001; // ~10m threshold
 
   isGPSBased(): boolean {
     return true;
@@ -57,14 +57,20 @@ export class GeoMovement implements MovementFacade {
     // Create a new LatLng from the GPS coordinates
     const newLatLng = leaflet.latLng(coords.latitude, coords.longitude);
 
-    // Only update if we've moved significantly
-    if (this.lastPos) {
-      const latDiff = Math.abs(coords.latitude - this.lastPos.latitude);
-      const lonDiff = Math.abs(coords.longitude - this.lastPos.longitude);
-
-      if (latDiff < this.sensitivity && lonDiff < this.sensitivity) {
-        return; // Movement too small, ignore
+    if (!this.lastPos) {
+      this.lastPos = coords;
+      if (this.moveCb) {
+        this.moveCb(newLatLng);
       }
+      return;
+    }
+
+    // For subsequent positions, check if movement is significant
+    const latDiff = Math.abs(coords.latitude - this.lastPos.latitude);
+    const lonDiff = Math.abs(coords.longitude - this.lastPos.longitude);
+    
+    if (latDiff < this.sensitivity && lonDiff < this.sensitivity) {
+      return; // Movement too small, ignore
     }
 
     this.lastPos = coords;

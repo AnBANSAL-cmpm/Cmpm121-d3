@@ -139,7 +139,7 @@ const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
 ).addTo(map);
 
 const useGPS = new URLSearchParams(location.search).get("gps") === "1";
-const movementController = useGPS ? new GeoMovement() : new ButtonMovement();
+let movementController = useGPS ? new GeoMovement() : new ButtonMovement();
 
 function movePlayer(direction: string) {
   const delta = {
@@ -156,6 +156,7 @@ function movePlayer(direction: string) {
   );
 }
 
+/*
 movementController.onMove?.((update: leaflet.LatLng | string) => {
   if (typeof update === "string") {
     // Button movement - update is a direction string
@@ -170,6 +171,24 @@ movementController.onMove?.((update: leaflet.LatLng | string) => {
   refreshVisibleCells();
   saveGameState();
 });
+*/
+
+function setupMovementCallbacks() {
+  movementController.onMove?.((update: leaflet.LatLng | string) => {
+    if (typeof update === "string") {
+      movePlayer(update);
+    } else if (update instanceof leaflet.LatLng) {
+      playerLatLng = update;
+    }
+
+    playerMarker.setLatLng(playerLatLng);
+    map.panTo(playerLatLng);
+    refreshVisibleCells();
+    saveGameState();
+  });
+}
+
+setupMovementCallbacks();
 
 // FIXED: Start movement controller
 movementController.start?.();
@@ -183,9 +202,71 @@ const controlPanel = document.createElement("div");
 controlPanel.id = "controlPanel";
 document.body.appendChild(controlPanel);
 
-if (useGPS) {
-  controlPanel.style.display = "none";
+// Reset button
+const resetBtn = document.createElement("button");
+resetBtn.textContent = "🔄 Reset Game";
+resetBtn.className = "dir-btn";
+resetBtn.style.marginTop = "10px";
+controlPanel.appendChild(resetBtn);
+resetBtn.addEventListener("click", () => {
+  if (
+    confirm(
+      "Are you sure you want to reset the game? This will clear all progress.",
+    )
+  ) {
+    localStorage.removeItem(STORAGE_KEY_PLAYER_POS);
+    localStorage.removeItem(STORAGE_KEY_HELD_TOKEN);
+    localStorage.removeItem(STORAGE_KEY_MODIFIED_CELLS);
+    location.reload();
+  }
+});
+
+// Initially hide direction buttons if in GPS mode
+if (movementController instanceof GeoMovement) {
+  const dirButtons = controlPanel.querySelectorAll(".dir-btn");
+  dirButtons.forEach((btn, index) => {
+    if (index > 0 && btn !== resetBtn) {
+      (btn as HTMLElement).style.display = "none";
+    }
+  });
 }
+
+//TOGGLE BUTTON
+const toggleBtn = document.createElement("button");
+toggleBtn.textContent = movementController instanceof GeoMovement
+  ? "📍 GPS Mode"
+  : "🎮 Button Mode";
+toggleBtn.className = "dir-btn";
+toggleBtn.style.width = "100%";
+toggleBtn.style.marginBottom = "10px";
+controlPanel.appendChild(toggleBtn);
+
+toggleBtn.addEventListener("click", () => {
+  movementController.stop?.();
+
+  if (movementController instanceof GeoMovement) {
+    movementController = new ButtonMovement();
+    toggleBtn.textContent = "🎮 Button Mode";
+    const dirButtons = controlPanel.querySelectorAll(".dir-btn");
+    dirButtons.forEach((btn) => {
+      if (btn !== toggleBtn && btn !== resetBtn) {
+        (btn as HTMLElement).style.display = "block";
+      }
+    });
+  } else {
+    movementController = new GeoMovement();
+    toggleBtn.textContent = "📍 GPS Mode";
+    const dirButtons = controlPanel.querySelectorAll(".dir-btn");
+    dirButtons.forEach((btn) => {
+      if (btn !== toggleBtn && btn !== resetBtn) {
+        (btn as HTMLElement).style.display = "none";
+      }
+    });
+  }
+
+  setupMovementCallbacks();
+  movementController.start?.();
+});
 
 const directions = [
   ["N", "north"],

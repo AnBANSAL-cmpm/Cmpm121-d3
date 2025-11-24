@@ -5,11 +5,16 @@ import { MovementFacade } from "./Movement.ts";
 export class GeoMovement implements MovementFacade {
   private watchId: number | null = null;
   private moveCb?: (latlng: leaflet.LatLng) => void;
+  private errorCb?: (error: GeolocationPositionError) => void;
   private lastPos: GeolocationCoordinates | null = null;
   private sensitivity = 0.00005; // ~5m threshold
 
   isGPSBased(): boolean {
     return true;
+  }
+
+  onError(callback: (error: GeolocationPositionError) => void): void {
+    this.errorCb = callback;
   }
 
   start() {
@@ -20,7 +25,13 @@ export class GeoMovement implements MovementFacade {
 
     this.watchId = navigator.geolocation.watchPosition(
       (pos) => this.handlePosition(pos),
-      (err) => console.error("Geolocation error:", err),
+      (err) => {
+        console.error("Geolocation error:", err);
+        // ADD: Call error callback if permission denied
+        if (this.errorCb) {
+          this.errorCb(err);
+        }
+      },
       { enableHighAccuracy: true },
     );
   }

@@ -7,6 +7,7 @@ export interface MovementFacade {
   move?(direction: "north" | "south" | "east" | "west"): void; // optional programmatic move
   onMove?(callback: (latlng: leaflet.LatLng | string) => void): void; // subscribe to movement events
   isGPSBased?(): boolean;
+  onError?(callback: (error: GeolocationPositionError) => void): void;
 }
 
 // === Button adapter ===
@@ -16,6 +17,10 @@ export class ButtonMovement implements MovementFacade {
 
   isGPSBased(): boolean {
     return false;
+  }
+
+  onError(_callback: (error: GeolocationPositionError) => void): void {
+    // No-op for button movement - buttons don't have permission errors
   }
 
   move(direction: "north" | "south" | "east" | "west") {

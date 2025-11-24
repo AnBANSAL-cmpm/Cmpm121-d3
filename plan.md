@@ -63,4 +63,4 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] persist game state (playerLatLng, heldToken, modifiedCells) to localStorage on every meaningful change
 - [x] on load, restore game state from localStorage if present
 - [x] provide a "New Game" control that clears stored state and resets map
-- [ ] ensure safe permission handling and fallback: if geolocation denied, fall back to ButtonMovement
+- [x] ensure safe permission handling and fallback: if geolocation denied, fall back to ButtonMovement

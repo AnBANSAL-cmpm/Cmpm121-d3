@@ -157,23 +157,6 @@ function movePlayer(direction: string) {
   );
 }
 
-/*
-movementController.onMove?.((update: leaflet.LatLng | string) => {
-  if (typeof update === "string") {
-    // Button movement - update is a direction string
-    movePlayer(update);
-  } else if (update instanceof leaflet.LatLng) {
-    // GPS movement - update is already a LatLng
-    playerLatLng = update;
-  }
-
-  playerMarker.setLatLng(playerLatLng);
-  map.panTo(playerLatLng);
-  refreshVisibleCells();
-  saveGameState();
-});
-*/
-
 function setupMovementCallbacks() {
   movementController.onMove?.((update: leaflet.LatLng | string) => {
     if (typeof update === "string") {
@@ -190,6 +173,39 @@ function setupMovementCallbacks() {
 }
 
 setupMovementCallbacks();
+movementController.onError?.((error) => {
+  console.warn(
+    "Geolocation failed, falling back to button controls:",
+    error.message,
+  );
+
+  // Stop GPS controller
+  movementController.stop?.();
+
+  // Switch to button movement
+  movementController = new ButtonMovement();
+  setupMovementCallbacks();
+  movementController.start?.();
+
+  // Update toggle button text
+  const toggleBtn = document.querySelector(
+    "#controlPanel button",
+  ) as HTMLButtonElement;
+  if (toggleBtn) {
+    toggleBtn.textContent = "🎮 Button Mode, click to switch to GPS";
+  }
+
+  // Show direction buttons
+  const dirButtons = controlPanel.querySelectorAll(".dir-btn");
+  dirButtons.forEach((btn) => {
+    (btn as HTMLElement).style.display = "block";
+  });
+
+  // Alert user
+  alert("Location access denied or unavailable. Switched to button controls.");
+});
+
+//Handle errors from GeoMovement
 
 // FIXED: Start movement controller
 movementController.start?.();
@@ -235,8 +251,8 @@ if (movementController instanceof GeoMovement) {
 //TOGGLE BUTTON
 const toggleBtn = document.createElement("button");
 toggleBtn.textContent = movementController.isGPSBased?.()
-  ? "📍 GPS Mode"
-  : "🎮 Button Mode";
+  ? "📍 , click to switch to Button"
+  : "🎮 Button Mode, click to switch to GPS";
 toggleBtn.className = "dir-btn";
 toggleBtn.style.width = "100%";
 toggleBtn.style.marginBottom = "10px";
@@ -247,7 +263,7 @@ toggleBtn.addEventListener("click", () => {
 
   if (movementController instanceof GeoMovement) {
     movementController = new ButtonMovement();
-    toggleBtn.textContent = "🎮 Button Mode";
+    toggleBtn.textContent = "🎮 Button Mode, click to switch to GPS";
     const dirButtons = controlPanel.querySelectorAll(".dir-btn");
     dirButtons.forEach((btn) => {
       if (btn !== toggleBtn && btn !== resetBtn) {
@@ -256,7 +272,7 @@ toggleBtn.addEventListener("click", () => {
     });
   } else {
     movementController = new GeoMovement();
-    toggleBtn.textContent = "📍 GPS Mode";
+    toggleBtn.textContent = "📍 GPS Mode, click to switch to Button";
     const dirButtons = controlPanel.querySelectorAll(".dir-btn");
     dirButtons.forEach((btn) => {
       if (btn !== toggleBtn && btn !== resetBtn) {

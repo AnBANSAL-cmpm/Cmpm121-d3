@@ -68,7 +68,7 @@ export class GeoMovement implements MovementFacade {
     // For subsequent positions, check if movement is significant
     const latDiff = Math.abs(coords.latitude - this.lastPos.latitude);
     const lonDiff = Math.abs(coords.longitude - this.lastPos.longitude);
-    
+
     if (latDiff < this.sensitivity && lonDiff < this.sensitivity) {
       return; // Movement too small, ignore
     }

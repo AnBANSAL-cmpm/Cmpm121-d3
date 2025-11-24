@@ -24,7 +24,7 @@ export class GeoMovement implements MovementFacade {
     }
 
     this.watchId = navigator.geolocation.watchPosition(
-      (pos) => this.handlePosition(pos),
+      (pos) => this.handlePositionUpdate(pos),
       (err) => {
         console.error("Geolocation error:", err);
         // ADD: Call error callback if permission denied
@@ -51,7 +51,7 @@ export class GeoMovement implements MovementFacade {
     // No-op for geolocation movement - movement is automatic
   }
 
-  private handlePosition(position: GeolocationPosition) {
+  private handlePositionUpdate(position: GeolocationPosition) {
     const coords = position.coords;
 
     // Create a new LatLng from the GPS coordinates

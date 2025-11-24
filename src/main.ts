@@ -11,34 +11,33 @@ import "./_leafletWorkaround.ts"; // fixes for missing Leaflet images
 // Import our luck function
 import luck from "./_luck.ts";
 
-// FIXED: Import GeoMovement from the correct file
 import { GeoMovement } from "./GeoMovement.ts";
 import { ButtonMovement } from "./Movement.ts";
 
-// === Constants ===
+// Constants
 const CLASSROOM_LATLNG = leaflet.latLng(
   36.997936938057016,
   -122.05703507501151,
 );
 const ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4; //about 10 meters
-const INTERACT_RADIUS = 4;
+const INTERACT_RADIUS = 4; //can interact within 4 cells
 const TOKEN_PROBABILITY = 0.3; // 30% chance of token in each cell
 const WORLD_RADIUS = 20;
 const FINAL_TOKEN_VALUE = 32;
 
-// === Color Constants ===
+// Color Constants
 const COLOR_TOKEN = "#4CAF50";
 const COLOR_EMPTY = "#999";
-const COLOR_COMBINED = "#c4dd38ff";
+const COLOR_MERGED_TOKEN = "#c4dd38ff";
 const MOVE_STEP = TILE_DEGREES; // how much to move per button press
 
-// === Persistence keys ===
+//Persistence keys
 const STORAGE_KEY_PLAYER_POS = "playerPosition";
 const STORAGE_KEY_HELD_TOKEN = "heldToken";
 const STORAGE_KEY_MODIFIED_CELLS = "modifiedCells";
 
-// === Load saved state ===
+// Load saved state
 function loadGameState() {
   // Load player position
   const savedPos = localStorage.getItem(STORAGE_KEY_PLAYER_POS);
@@ -63,7 +62,7 @@ function loadGameState() {
   }
 }
 
-// === Save game state ===
+// Save game state
 function saveGameState() {
   // Save player position
   localStorage.setItem(
@@ -82,12 +81,12 @@ function saveGameState() {
 let heldToken: number | null = null;
 let playerLatLng = CLASSROOM_LATLNG;
 
-// === Persistent memory for modified cells (Memento storage) ===
+// Persistent memory for modified cells (Memento storage)
 const modifiedCells = new Map<string, number>();
 
 loadGameState();
 
-// === Setup Map Element ===
+//Setup Map Element
 const mapDiv = document.createElement("div");
 mapDiv.id = "map";
 document.body.appendChild(mapDiv);
@@ -111,7 +110,7 @@ leaflet
   })
   .addTo(map);
 
-//UI Elements
+// Status Panel
 const statusPanel = document.createElement("div");
 statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
@@ -133,7 +132,6 @@ function updateCellLabel(label: leaflet.Marker, value: number) {
   );
 }
 
-// Add a marker to represent the player
 const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
   "You are here",
 ).addTo(map);
@@ -206,8 +204,6 @@ movementController.onError?.((error) => {
 });
 
 //Handle errors from GeoMovement
-
-// FIXED: Start movement controller
 movementController.start?.();
 
 map.on("moveend", () => {
@@ -307,13 +303,13 @@ function cellKey(i: number, j: number): string {
   return `${i},${j}`;
 }
 
-// === Dynamic cells ===
+// Dynamic cells
 const visibleCells = new Map<
   string,
   { rect: leaflet.Rectangle; label: leaflet.Marker; value: number }
 >();
 
-// === Helper: convert a latitude/longitude to a grid cell coordinate ===
+//Helper: convert a latitude/longitude to a grid cell coordinate
 function latLngToCell(lat: number, lng: number) {
   return {
     i: Math.floor(lat / TILE_DEGREES),
@@ -321,7 +317,7 @@ function latLngToCell(lat: number, lng: number) {
   };
 }
 
-// === Helper: convert a cell coordinate back to a bounding box in lat/lng ===
+//Helper: convert a cell coordinate back to a bounding box in lat/lng
 function cellToBounds(i: number, j: number) {
   return leaflet.latLngBounds([
     [i * TILE_DEGREES, j * TILE_DEGREES],
@@ -338,7 +334,7 @@ function cellToCenter(i: number, j: number): leaflet.LatLng {
 function cellStyle(value: number) {
   if (value <= 0) return { color: COLOR_EMPTY, fillOpacity: 0.2 };
   if (value === 1) return { color: COLOR_TOKEN, fillOpacity: 0.6 };
-  return { color: COLOR_COMBINED, fillOpacity: 0.6 }; // combined cells
+  return { color: COLOR_MERGED_TOKEN, fillOpacity: 0.6 }; // combined cells
 }
 
 function spawnCell(i: number, j: number) {
@@ -372,7 +368,7 @@ function spawnCell(i: number, j: number) {
     interactive: false,
   }).addTo(map);
 
-  // === Interaction: pick up / combine token ===
+  // Interaction: pick up / combine token
   rect.on("click", () => {
     const { i: ci, j: cj } = latLngToCell(playerLatLng.lat, playerLatLng.lng);
 
@@ -398,7 +394,7 @@ function spawnCell(i: number, j: number) {
       modifiedCells.set(cellKey(i, j), newValue);
       heldToken = null;
       updateCellLabel(label, newValue);
-      rect.setStyle({ color: COLOR_COMBINED, fillOpacity: 0.6 });
+      rect.setStyle({ color: COLOR_MERGED_TOKEN, fillOpacity: 0.6 });
     }
     tokenValue = newValue;
     // ---- SAVE THE UPDATED VALUE ----

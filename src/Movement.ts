@@ -6,12 +6,17 @@ export interface MovementFacade {
   stop?(): void; // stop background tracking
   move?(direction: "north" | "south" | "east" | "west"): void; // optional programmatic move
   onMove?(callback: (latlng: leaflet.LatLng | string) => void): void; // subscribe to movement events
+  isGPSBased?(): boolean;
 }
 
 // === Button adapter ===
 export class ButtonMovement implements MovementFacade {
   private moveCb?: (latlng: leaflet.LatLng | string) => void;
   private MOVE_STEP = 1e-4; // Same as TILE_DEGREES
+
+  isGPSBased(): boolean {
+    return false;
+  }
 
   move(direction: "north" | "south" | "east" | "west") {
     // Don't call external functions - just notify via callback

@@ -137,6 +137,7 @@ function updateCellLabel(label: leaflet.Marker, value: number) {
 const playerMarker = leaflet.marker(CLASSROOM_LATLNG).bindTooltip(
   "You are here",
 ).addTo(map);
+map.setView(playerLatLng);
 
 const useGPS = new URLSearchParams(location.search).get("gps") === "1";
 let movementController = useGPS ? new GeoMovement() : new ButtonMovement();
@@ -233,7 +234,7 @@ if (movementController instanceof GeoMovement) {
 
 //TOGGLE BUTTON
 const toggleBtn = document.createElement("button");
-toggleBtn.textContent = movementController instanceof GeoMovement
+toggleBtn.textContent = movementController.isGPSBased?.()
   ? "📍 GPS Mode"
   : "🎮 Button Mode";
 toggleBtn.className = "dir-btn";
@@ -388,6 +389,8 @@ function spawnCell(i: number, j: number) {
     const old = visibleCells.get(key)!;
     visibleCells.set(key, { ...old, value: newValue });
     updateStatus();
+
+    saveGameState();
   });
 
   visibleCells.set(key, { rect, label, value: tokenValue });

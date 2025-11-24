@@ -58,9 +58,9 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] add MovementFacade interface to decouple game from how player moves
 - [x] implement ButtonMovement (adapter) that uses existing button controls (wrapper)
 - [x] implement GeoMovement (adapter) that uses browser geolocation API (watchPosition)
-- [ ] add runtime toggle UI to switch between ButtonMovement and GeoMovement
-- [ ] hide movement details behind MovementFacade so rest of game uses only facade methods/events
-- [ ] persist game state (playerLatLng, heldToken, modifiedCells) to localStorage on every meaningful change
-- [ ] on load, restore game state from localStorage if present
-- [ ] provide a "New Game" control that clears stored state and resets map
+- [x] add runtime toggle UI to switch between ButtonMovement and GeoMovement
+- [x] hide movement details behind MovementFacade so rest of game uses only facade methods/events
+- [x] persist game state (playerLatLng, heldToken, modifiedCells) to localStorage on every meaningful change
+- [x] on load, restore game state from localStorage if present
+- [x] provide a "New Game" control that clears stored state and resets map
 - [ ] ensure safe permission handling and fallback: if geolocation denied, fall back to ButtonMovement

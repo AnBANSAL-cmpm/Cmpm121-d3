@@ -8,6 +8,10 @@ export class GeoMovement implements MovementFacade {
   private lastPos: GeolocationCoordinates | null = null;
   private sensitivity = 0.00005; // ~5m threshold
 
+  isGPSBased(): boolean {
+    return true;
+  }
+
   start() {
     if (!navigator.geolocation) {
       console.error("Geolocation not supported");

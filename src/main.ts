@@ -211,7 +211,9 @@ movementController.onError?.((error) => {
     2: "Location unavailable. Please check your device's location settings.",
     3: "Location request timed out. Please try again.",
   };
-  alert(errorMessages[error.code as 1 | 2 | 3] || `GPS Error: ${error.message}`);
+  alert(
+    errorMessages[error.code as 1 | 2 | 3] || `GPS Error: ${error.message}`,
+  );
 });
 
 // DON'T auto-start GPS mode
@@ -229,21 +231,21 @@ if (startGPSButton) {
   if (useGPS) {
     console.log("Enable GPS button found, setting up click handler");
     startGPSButton.style.display = "block";
-    
+
     startGPSButton.addEventListener("click", () => {
       console.log("Enable GPS button clicked!");
-      
+
       // Check if geolocation is supported
       if (!navigator.geolocation) {
         alert("Geolocation is not supported by your browser");
         return;
       }
-      
+
       console.log("Starting GPS tracking from user gesture...");
-      
+
       // Start GPS tracking (this is now inside a user gesture)
       movementController.start?.();
-      
+
       // Hide the button after clicking
       startGPSButton.style.display = "none";
     });
@@ -282,7 +284,7 @@ toggleBtn.addEventListener("click", () => {
     console.log("Switching to Button mode");
     movementController = new ButtonMovement();
     toggleBtn.textContent = "🎮 Button Mode, click to switch to GPS";
-    
+
     const dirButtons = document.querySelectorAll(".dir-btn");
     dirButtons.forEach((btn) => {
       if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {
@@ -301,7 +303,7 @@ toggleBtn.addEventListener("click", () => {
     console.log("Switching to GPS mode");
     movementController = new GeoMovement();
     toggleBtn.textContent = "📍 GPS Mode, click to switch to Button";
-    
+
     const dirButtons = document.querySelectorAll(".dir-btn");
     dirButtons.forEach((btn) => {
       if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {
@@ -314,7 +316,7 @@ toggleBtn.addEventListener("click", () => {
       console.log("Showing Enable GPS button");
       startGPSButton.style.display = "block";
     }
-    
+
     setupMovementCallbacks();
     // DON'T auto-start - wait for user to click "Enable GPS" button
   }

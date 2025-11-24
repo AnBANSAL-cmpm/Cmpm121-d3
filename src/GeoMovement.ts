@@ -20,13 +20,20 @@ export class GeoMovement implements MovementFacade {
   start() {
     if (!navigator.geolocation) {
       console.error("Geolocation not supported");
+      alert("Geolocation not supported on this device");
       return;
     }
 
+    console.log("Starting GPS tracking...");
+
     this.watchId = navigator.geolocation.watchPosition(
-      (pos) => this.handlePositionUpdate(pos),
+      (pos) => {
+        console.log("GPS update:", pos.coords.latitude, pos.coords.longitude);
+        this.handlePositionUpdate(pos);
+      },
       (err) => {
         console.error("Geolocation error:", err);
+        alert(`GPS Error: ${err.message}`);
         // ADD: Call error callback if permission denied
         if (this.errorCb) {
           this.errorCb(err);

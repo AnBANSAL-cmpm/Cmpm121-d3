@@ -183,6 +183,8 @@ movementController.onError?.((error) => {
   // Switch to button movement
   movementController = new ButtonMovement();
   setupMovementCallbacks();
+
+  // Start button controller
   movementController.start?.();
 
   // Update toggle button text
@@ -204,7 +206,26 @@ movementController.onError?.((error) => {
 });
 
 //Handle errors from GeoMovement
-movementController.start?.();
+if (!useGPS) {
+  movementController.start?.();
+}
+
+// Handle the "Enable GPS" button from index.html
+const startGPSButton = document.getElementById("start") as HTMLButtonElement;
+if (startGPSButton && useGPS) {
+  startGPSButton.addEventListener("click", () => {
+    console.log("User clicked Enable GPS button");
+
+    // Start GPS tracking (this is now inside a user gesture)
+    movementController.start?.();
+
+    // Hide the button after clicking
+    startGPSButton.style.display = "none";
+  });
+} else if (startGPSButton && !useGPS) {
+  // If not in GPS mode, hide the button immediately
+  startGPSButton.style.display = "none";
+}
 
 map.on("moveend", () => {
   refreshVisibleCells();
@@ -266,6 +287,13 @@ toggleBtn.addEventListener("click", () => {
         (btn as HTMLElement).style.display = "block";
       }
     });
+
+    if (startGPSButton) {
+      startGPSButton.style.display = "none";
+    }
+
+    setupMovementCallbacks();
+    movementController.start?.();
   } else {
     movementController = new GeoMovement();
     toggleBtn.textContent = "📍 GPS Mode, click to switch to Button";
@@ -275,10 +303,13 @@ toggleBtn.addEventListener("click", () => {
         (btn as HTMLElement).style.display = "none";
       }
     });
-  }
 
-  setupMovementCallbacks();
-  movementController.start?.();
+    // Show the Enable GPS button so user can grant permission
+    if (startGPSButton) {
+      startGPSButton.style.display = "block";
+    }
+    setupMovementCallbacks();
+  }
 });
 
 const directions = [

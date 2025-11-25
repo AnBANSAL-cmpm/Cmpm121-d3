@@ -232,7 +232,7 @@ if (startGPSButton) {
     console.log("Enable GPS button found, setting up click handler");
     startGPSButton.style.display = "block";
 
-    startGPSButton.addEventListener("click", () => {
+    startGPSButton.addEventListener("click", async () => {
       console.log("Enable GPS button clicked!");
 
       // Check if geolocation is supported
@@ -241,13 +241,58 @@ if (startGPSButton) {
         return;
       }
 
-      console.log("Starting GPS tracking from user gesture...");
+      // Disable button during permission request
+      startGPSButton.disabled = true;
+      startGPSButton.textContent = "Requesting permission...";
 
-      // Start GPS tracking (this is now inside a user gesture)
-      movementController.start?.();
+      try {
+        // IMPORTANT: Use getCurrentPosition first to properly request permission on iOS
+        // This gives iOS time to show the permission dialog and get user response
+        console.log("Requesting initial position for permission...");
 
-      // Hide the button after clicking
-      startGPSButton.style.display = "none";
+        await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              console.log(
+                "Permission granted! Initial position:",
+                position.coords,
+              );
+              resolve(position);
+            },
+            (error) => {
+              console.error("Permission error:", error);
+              reject(error);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            },
+          );
+        });
+
+        // If we get here, permission was granted!
+        console.log("Starting continuous GPS tracking...");
+
+        // Now start the continuous tracking
+        movementController.start?.();
+
+        // Hide the button after success
+        startGPSButton.style.display = "none";
+      } catch (error) {
+        // Permission was denied or error occurred
+        console.error("Failed to get permission:", error);
+
+        // Re-enable button
+        startGPSButton.disabled = false;
+        startGPSButton.textContent = "Enable GPS";
+
+        // Don't call the error handler - it will be called automatically by watchPosition
+        // Just show a message
+        alert(
+          "Please allow location access to use GPS mode. You may need to enable location services in your device settings.",
+        );
+      }
     });
   } else {
     // If not in GPS mode, hide the button immediately
@@ -315,6 +360,8 @@ toggleBtn.addEventListener("click", () => {
     if (startGPSButton) {
       console.log("Showing Enable GPS button");
       startGPSButton.style.display = "block";
+      startGPSButton.disabled = false;
+      startGPSButton.textContent = "Enable GPS";
     }
 
     setupMovementCallbacks();

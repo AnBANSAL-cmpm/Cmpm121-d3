@@ -24,6 +24,17 @@ export class GeoMovement implements MovementFacade {
       return;
     }
 
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" })
+        .then((result) => {
+          console.log("GPS permission state:", result.state);
+          if (result.state === "denied") {
+            alert("Location permission denied. Please enable in settings.");
+          }
+        })
+        .catch(console.warn);
+    }
+
     console.log("Starting GPS tracking...");
 
     this.watchId = navigator.geolocation.watchPosition(

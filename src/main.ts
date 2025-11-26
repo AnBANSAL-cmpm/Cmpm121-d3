@@ -109,6 +109,13 @@ const statusPanel = document.createElement("div");
 statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
 
+//Creating button
+const startButton = document.createElement("button");
+startButton.id = "start";
+startButton.textContent = "Enable GPS";
+startButton.style.display = "none"; // Hidden by default
+document.body.appendChild(startButton);
+
 function updateStatus() {
   statusPanel.innerHTML = heldToken
     ? `🎒 Holding token: ${heldToken}${
@@ -279,7 +286,7 @@ toggleBtn.addEventListener("click", () => {
   console.log("Toggle button clicked");
   movementController.stop?.();
 
-  if (movementController instanceof GeoMovement) {
+  if (movementController.isGPSBased?.()) {
     // Switching FROM GPS TO Button
     console.log("Switching to Button mode");
     movementController = new ButtonMovement();
@@ -362,7 +369,7 @@ resetBtn.addEventListener("click", () => {
 });
 
 // Initially hide direction buttons if in GPS mode
-if (movementController instanceof GeoMovement) {
+if (movementController.isGPSBased?.()) {
   const dirButtons = controlPanel.querySelectorAll(".dir-btn");
   dirButtons.forEach((btn) => {
     if (btn.id !== "toggleBtn" && btn.id !== "resetBtn") {

@@ -80,6 +80,13 @@ const modifiedCells = new Map<string, number>();
 
 loadGameState();
 
+//Creating button
+const startButton = document.createElement("button");
+startButton.id = "start";
+startButton.textContent = "Enable GPS";
+startButton.style.display = "none"; // Hidden by default
+document.body.appendChild(startButton);
+
 //Setup Map Element
 const mapDiv = document.createElement("div");
 mapDiv.id = "map";
@@ -108,13 +115,6 @@ leaflet
 const statusPanel = document.createElement("div");
 statusPanel.id = "statusPanel";
 document.body.appendChild(statusPanel);
-
-//Creating button
-const startButton = document.createElement("button");
-startButton.id = "start";
-startButton.textContent = "Enable GPS";
-startButton.style.display = "none"; // Hidden by default
-document.body.appendChild(startButton);
 
 function updateStatus() {
   statusPanel.innerHTML = heldToken
@@ -206,12 +206,6 @@ movementController.onError?.((error) => {
     }
   });
 
-  // Hide Enable GPS button
-  const startGPSButton = document.getElementById("start") as HTMLButtonElement;
-  if (startGPSButton) {
-    startGPSButton.style.display = "none";
-  }
-
   // Alert user with specific error
   const errorMessages = {
     1: "Location permission denied. Please enable location access in your device settings.",
@@ -231,15 +225,18 @@ if (!useGPS) {
   console.log("GPS mode - waiting for user to click Enable GPS button");
 }
 
-// Handle the "Enable GPS" button from index.html
-const startGPSButton = document.getElementById("start") as HTMLButtonElement;
+// Hide Enable GPS button
+if (startButton) {
+  startButton.style.display = "none";
+}
 
-if (startGPSButton) {
+// Handle the "Enable GPS" button from index.html
+if (startButton) {
   if (useGPS) {
     console.log("Enable GPS button found, setting up click handler");
-    startGPSButton.style.display = "block";
+    startButton.style.display = "block";
 
-    startGPSButton.addEventListener("click", () => {
+    startButton.addEventListener("click", () => {
       console.log("Enable GPS button clicked!");
 
       // Check if geolocation is supported
@@ -254,11 +251,11 @@ if (startGPSButton) {
       movementController.start?.();
 
       // Hide the button after clicking
-      startGPSButton.style.display = "none";
+      startButton.style.display = "none";
     });
   } else {
     // If not in GPS mode, hide the button immediately
-    startGPSButton.style.display = "none";
+    startButton.style.display = "none";
   }
 }
 
@@ -299,8 +296,8 @@ toggleBtn.addEventListener("click", () => {
       }
     });
 
-    if (startGPSButton) {
-      startGPSButton.style.display = "none";
+    if (startButton) {
+      startButton.style.display = "none";
     }
 
     setupMovementCallbacks();
@@ -319,9 +316,9 @@ toggleBtn.addEventListener("click", () => {
     });
 
     // Show the Enable GPS button so user can grant permission
-    if (startGPSButton) {
+    if (startButton) {
       console.log("Showing Enable GPS button");
-      startGPSButton.style.display = "block";
+      startButton.style.display = "block";
     }
 
     setupMovementCallbacks();
